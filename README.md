@@ -4,7 +4,7 @@ Bienvenidos, este el proyecto para la materia Seminario de Lenguajes (orientaci√
 El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 - Barreto Mart√≠n Ezequiel       @Mar3z
 - Brandan Fabrizio              @fabriziobrandan-cpu
-- Crespo Barreiro Lourdes       @LourdesCrespo
+- Crespo Barreira Lourdes Noelia    @LourdesCrespo
 - Arriola Natalia               @nataliaarriola
 
 
