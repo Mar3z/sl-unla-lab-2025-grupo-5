@@ -27,7 +27,8 @@ def calcular_edad(fecha_nacimiento: date):
     return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
 
 # ----- ENDPOINTS DE PERSONAS (CRUD) -----
-#Crear persona
+
+#Crear persona / POST
 
 @app.post("/personas", response_model=PersonaSchema)
 def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
@@ -46,3 +47,8 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
     db.refresh(db_persona)
     return db_persona
 
+#Obtener personas / GET
+
+@app.get("/personas", response_model=list[PersonaSchema])
+def listar_personas(db: Session = Depends(get_db)):
+    return db.query(Persona).all()
