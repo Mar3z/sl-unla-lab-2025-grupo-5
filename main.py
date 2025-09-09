@@ -33,6 +33,14 @@ def calcular_edad(fecha_nacimiento: date):
 
 @app.post("/personas", response_model=PersonaSchema)
 def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
+    #Validacion:la fecha de nacimiento no puede ser futura
+    if persona.fecha_nacimiento > date.today():
+        raise HTTPException(
+            status_code=400,
+            detail="La fecha de nacimiento no puede ser futura"
+        )
+    
+    
     edad = calcular_edad(persona.fecha_nacimiento)
     db_persona = Persona(
         nombre=persona.nombre,
