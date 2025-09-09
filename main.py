@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from database import SessionLocal  #Me aseguro de que exista database.py con SessionLocal
+from database import engine
+from models import Base
 
 app = FastAPI()
 
@@ -16,3 +18,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+#Creo tablas
+Base.metadata.create_all(bind=engine)
