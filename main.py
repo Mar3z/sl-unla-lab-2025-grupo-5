@@ -47,8 +47,17 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
     db.refresh(db_persona)
     return db_persona
 
-#Obtener personas / GET
+#Obtener todas las personas / GET
 
 @app.get("/personas", response_model=list[PersonaSchema])
 def listar_personas(db: Session = Depends(get_db)):
     return db.query(Persona).all()
+
+#Obtener persona por ID / GET
+
+@app.get("/personas/{id}", response_model=PersonaSchema)
+def obtener_persona(id: int, db: Session = Depends(get_db)):
+    persona = db.query(Persona).filter(Persona.id == id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    return persona
