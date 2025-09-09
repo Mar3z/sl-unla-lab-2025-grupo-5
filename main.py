@@ -4,6 +4,7 @@ from database import SessionLocal,engine,Base  #Me aseguro de que exista databas
 from models import Persona
 from schemas import PersonaCreate,Persona as PersonaSchema
 from datetime import date
+from sqlalchemy.exc import IntegrityError
 #Creo tablas
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -43,10 +44,16 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
         habilitado=True
     )
     db.add(db_persona)
-    db.commit()
-    db.refresh(db_persona)
-    return db_persona
-
+    try:
+        db.commit()
+        db.refresh(db_persona)
+        return db_persona
+    except IntegrityError:
+        db.rollback()  # revertir cambios de la sesión
+        raise HTTPException(
+            status_code=400, 
+            detail="Error: DNI o email ya registrado"
+        )
 #Obtener todas las personas / GET
 
 @app.get("/personas", response_model=list[PersonaSchema])
