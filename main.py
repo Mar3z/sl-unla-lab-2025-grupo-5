@@ -61,3 +61,17 @@ def obtener_persona(id: int, db: Session = Depends(get_db)):
     if not persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     return persona
+
+#Actualizar personas por id / PUT
+
+@app.put("/personas/{id}", response_model=PersonaSchema)
+def actualizar_persona(id: int, datos: PersonaCreate, db: Session = Depends(get_db)):
+    persona = db.query(Persona).filter(Persona.id == id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    for key, value in datos.dict().items():
+        setattr(persona, key, value)
+    persona.edad = calcular_edad(datos.fecha_nacimiento)
+    db.commit()
+    db.refresh(persona)
+    return persona
