@@ -75,3 +75,14 @@ def actualizar_persona(id: int, datos: PersonaCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(persona)
     return persona
+
+#Eliminar personas por id/ DELETE
+
+@app.delete("/personas/{id}")
+def eliminar_persona(id: int, db: Session = Depends(get_db)):
+    persona = db.query(Persona).filter(Persona.id == id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    db.delete(persona)
+    db.commit()
+    return {"mensaje": "Persona eliminada"}
