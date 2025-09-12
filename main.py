@@ -22,11 +22,6 @@ def get_db():
     finally:
         db.close()
 
-#Funcion para calcular edad
-def calcular_edad(fecha_nacimiento: date):
-    hoy = date.today()
-    return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
-
 # ----- ENDPOINTS DE PERSONAS (CRUD) -----
 
 #Crear persona / POST
@@ -40,28 +35,26 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
             detail="La fecha de nacimiento no puede ser futura"
         )
     
-    
-    edad = calcular_edad(persona.fecha_nacimiento)
+    # Verificar si ya existe email o DNI
+    if db.query(Persona).filter(Persona.email == persona.email).first():
+        raise HTTPException(status_code=400, detail="E-mail ya registrado")
+    if db.query(Persona).filter(Persona.dni == persona.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
+
     db_persona = Persona(
         nombre=persona.nombre,
         email=persona.email,
         dni=persona.dni,
         telefono=persona.telefono,
         fecha_nacimiento=persona.fecha_nacimiento,
-        edad=edad,
-        habilitado=True
+        habilitado=persona.habilitado
     )
+
     db.add(db_persona)
-    try:
-        db.commit()
-        db.refresh(db_persona)
-        return db_persona
-    except IntegrityError:
-        db.rollback()  # revertir cambios de la sesión
-        raise HTTPException(
-            status_code=400, 
-            detail="Error: DNI o email ya registrado"
-        )
+    db.commit()
+    db.refresh(db_persona)
+    return db_persona
+
 #Obtener todas las personas / GET
 
 @app.get("/personas", response_model=list[PersonaSchema])
@@ -86,7 +79,6 @@ def actualizar_persona(id: int, datos: PersonaCreate, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     for key, value in datos.dict().items():
         setattr(persona, key, value)
-    persona.edad = calcular_edad(datos.fecha_nacimiento)
     db.commit()
     db.refresh(persona)
     return persona

@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Boolean
 from database import Base
+from datetime import date
+
 # Creo la tabla personas
 class Persona(Base):
     __tablename__ = "personas"
@@ -10,5 +12,12 @@ class Persona(Base):
     dni = Column(String, unique=True, nullable=False)
     telefono = Column(String)
     fecha_nacimiento = Column(Date)
-    edad = Column(Integer)
     habilitado = Column(Boolean, default=True)
+
+    @property
+    def edad(self):
+        today = date.today()
+        return today.year - self.fecha_nacimiento.year - (
+            (today.month, today.day) <
+            (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+        )
