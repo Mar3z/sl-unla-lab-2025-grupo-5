@@ -1,2 +1,5 @@
 # Entorno virtual
 .venv/
+__pycache__/
+*.pyc
+*.db

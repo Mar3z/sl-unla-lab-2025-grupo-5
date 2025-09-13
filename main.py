@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+#Importamos FastAPI y herramientas:
+# FastAPI: el framework,Depends: para inyectar dependencias (ej. sesiones de DB), HTTPException: para lanzar errores personalizados en la API
+from fastapi import FastAPI, Depends,HTTPException
+#importamos sessiones
+from sqlalchemy.orm import Session
+ #Me aseguro de que exista database.py con SessionLocal, e importo lo necesario
+from database import SessionLocal,engine,Base 
+#Importamos el modelo Persona (tabla en DB)
+from models import Persona 
+#Importamos esquemas Pydantic (para validaciones y respuestas)
+from schemas import PersonaCreate,Persona as PersonaSchema 
+#Importamos date para trabajar con fechas
+from datetime import date 
+#Importamos excepción de SQLAlchemy para manejar duplicados (unique)
+from sqlalchemy.exc import IntegrityError 
+=======
 from fastapi import FastAPI, Depends,HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal,engine,Base  #Me aseguro de que exista database.py con SessionLocal
@@ -5,6 +22,7 @@ from models import Persona
 from schemas import PersonaCreate,Persona as PersonaSchema
 from datetime import date
 from sqlalchemy.exc import IntegrityError
+>>>>>>> origin/main
 #Creo tablas
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -33,6 +51,10 @@ def calcular_edad(fecha_nacimiento: date):
 
 @app.post("/personas", response_model=PersonaSchema)
 def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
     #Validacion:la fecha de nacimiento no puede ser futura
     if persona.fecha_nacimiento > date.today():
         raise HTTPException(
@@ -40,8 +62,14 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
             detail="La fecha de nacimiento no puede ser futura"
         )
     
+<<<<<<< HEAD
+    #Calcular edad automáticamente
+    edad = calcular_edad(persona.fecha_nacimiento)
+    #Crear instancia de Persona (modelo DB)
+=======
     
     edad = calcular_edad(persona.fecha_nacimiento)
+>>>>>>> origin/main
     db_persona = Persona(
         nombre=persona.nombre,
         email=persona.email,
@@ -51,6 +79,19 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
         edad=edad,
         habilitado=True
     )
+<<<<<<< HEAD
+    #Agregar a la sesión
+    db.add(db_persona)
+    try:
+        #Guardar cambios en la DB
+        db.commit()
+        #Refrescar el objeto con los datos guardados
+        db.refresh(db_persona)
+        return db_persona
+    except IntegrityError:
+        #Si hay error por duplicados, revertimos cambios
+        db.rollback()  
+=======
     db.add(db_persona)
     try:
         db.commit()
@@ -58,6 +99,7 @@ def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
         return db_persona
     except IntegrityError:
         db.rollback()  # revertir cambios de la sesión
+>>>>>>> origin/main
         raise HTTPException(
             status_code=400, 
             detail="Error: DNI o email ya registrado"
@@ -84,8 +126,15 @@ def actualizar_persona(id: int, datos: PersonaCreate, db: Session = Depends(get_
     persona = db.query(Persona).filter(Persona.id == id).first()
     if not persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
+<<<<<<< HEAD
+    #Actualizar todos los atributos de Persona con los datos recibidos
     for key, value in datos.dict().items():
         setattr(persona, key, value)
+    #Recalcular edad con la nueva fecha de nacimiento
+=======
+    for key, value in datos.dict().items():
+        setattr(persona, key, value)
+>>>>>>> origin/main
     persona.edad = calcular_edad(datos.fecha_nacimiento)
     db.commit()
     db.refresh(persona)

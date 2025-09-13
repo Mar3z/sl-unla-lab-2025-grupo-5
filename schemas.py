@@ -4,8 +4,8 @@ from datetime import date #Importa date para manejar fechas (fecha de nacimiento
 class PersonaBase(BaseModel): #clase base que define los campos obligatorios de una persona
     nombre: str
     email: EmailStr
-    dni: str
-    telefono: str
+    dni: int
+    telefono: int
     fecha_nacimiento: date
 
 class PersonaCreate(PersonaBase):#para crear personas (hereda de PersonaBase)
