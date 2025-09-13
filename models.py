@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #Importamos los tipos de datos que vamos a usar en la tabla
 #Column para definir columnas.Integer, String, Date, Boolean (tipos de datos de las columnas)
 from sqlalchemy import Column, Integer, String, Date, Boolean
@@ -7,10 +6,6 @@ from sqlalchemy import Column, Integer, String, Date, Boolean
 #Esta clase es la base de todos nuestros modelos/tablas
 from database import Base
 
-=======
-from sqlalchemy import Column, Integer, String, Date, Boolean
-from database import Base
->>>>>>> origin/main
 # Creo la tabla personas
 class Persona(Base):
     __tablename__ = "personas"
@@ -18,13 +13,8 @@ class Persona(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
-<<<<<<< HEAD
     dni = Column(Integer, unique=True, nullable=False)
     telefono = Column(Integer)
-=======
-    dni = Column(String, unique=True, nullable=False)
-    telefono = Column(String)
->>>>>>> origin/main
     fecha_nacimiento = Column(Date)
     edad = Column(Integer)
     habilitado = Column(Boolean, default=True)
