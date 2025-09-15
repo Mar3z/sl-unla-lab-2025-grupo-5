@@ -93,3 +93,11 @@ def get_turnos(db: Session):
 def get_turno(db: Session, turno_id: int):
     return db.query(models.Turno).filter(models.Turno.id == turno_id).first()
 
+def delete_turno(db: Session, turno_id: int):
+    db_turno = get_turno(db, turno_id)
+    if not db_turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    db.delete(db_turno)
+    db.commit()
+    return {"message": "Turno eliminado correctamente"}
+

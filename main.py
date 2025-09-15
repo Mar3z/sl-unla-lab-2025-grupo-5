@@ -25,67 +25,30 @@ def inicio():
 # Crear persona / POST
 @app.post("/personas", response_model=PersonaSchema)
 def crear_persona(persona: PersonaCreate, db: Session = Depends(get_db)):
-    #Validacion:la fecha de nacimiento no puede ser futura
-    if persona.fecha_nacimiento > date.today():
-        raise HTTPException(
-            status_code=400,
-            detail="La fecha de nacimiento no puede ser futura"
-        )
-    
-    # Verificar si ya existe email o DNI
-    if db.query(Persona).filter(Persona.email == persona.email).first():
-        raise HTTPException(status_code=400, detail="E-mail ya registrado")
-    if db.query(Persona).filter(Persona.dni == persona.dni).first():
-        raise HTTPException(status_code=400, detail="DNI ya registrado")
-
-    db_persona = Persona(
-        nombre=persona.nombre,
-        email=persona.email,
-        dni=persona.dni,
-        telefono=persona.telefono,
-        fecha_nacimiento=persona.fecha_nacimiento,
-        habilitado=persona.habilitado
-    )
-
-    db.add(db_persona)
-    db.commit()
-    db.refresh(db_persona)
-    return db_persona
+    return crud.create_persona(db, persona)
 
 # Obtener todas las personas / GET
 @app.get("/personas", response_model=list[PersonaSchema])
-def listar_personas(db: Session = Depends(get_db)):
-    return db.query(Persona).all()
+def listar_personas(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_personas(db, skip, limit)
 
 # Obtener persona por ID / GET
-@app.get("/personas/{id}", response_model=PersonaSchema)
-def obtener_persona(id: int, db: Session = Depends(get_db)):
-    persona = db.query(Persona).filter(Persona.id == id).first()
+@app.get("/personas/{persona_id}", response_model=PersonaSchema)
+def obtener_persona(persona_id: int, db: Session = Depends(get_db)):
+    persona = crud.get_persona(db, persona_id)
     if not persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     return persona
 
 # Actualizar personas por id / PUT
-@app.put("/personas/{id}", response_model=PersonaSchema)
-def actualizar_persona(id: int, datos: PersonaCreate, db: Session = Depends(get_db)):
-    persona = db.query(Persona).filter(Persona.id == id).first()
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona no encontrada")
-    for key, value in datos.dict().items():
-        setattr(persona, key, value)
-    db.commit()
-    db.refresh(persona)
-    return persona
+@app.put("/personas/{persona_id}", response_model=PersonaSchema)
+def actualizar_persona(persona_id: int, persona: schemas.PersonaCreate, db: Session = Depends(get_db)):
+    return crud.update_persona(db, persona_id, persona)
 
 # Eliminar personas por id/ DELETE
-@app.delete("/personas/{id}")
-def eliminar_persona(id: int, db: Session = Depends(get_db)):
-    persona = db.query(Persona).filter(Persona.id == id).first()
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona no encontrada")
-    db.delete(persona)
-    db.commit()
-    return {"mensaje": "Persona eliminada"}
+@app.delete("/personas/{persona_id}")
+def eliminar_persona(persona_id: int, db: Session = Depends(get_db)):
+    return crud.delete_persona(db, persona_id)
 
 # >>> Endpoints de turnos <<<
 
@@ -103,4 +66,8 @@ def obtener_turno(turno_id: int, db: Session = Depends(get_db)):
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
     return turno
+
+@app.delete("/turnos/{turno_id}")
+def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
+    return crud.delete_turno(db, turno_id)
 
