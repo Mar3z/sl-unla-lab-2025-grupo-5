@@ -71,3 +71,6 @@ def obtener_turno(turno_id: int, db: Session = Depends(get_db)):
 def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
     return crud.delete_turno(db, turno_id)
 
+@app.put("/turnos/{turno_id}", response_model=schemas.Turno)
+def actualizar_turno(turno_id: int, turno: schemas.TurnoUpdate, db: Session = Depends(get_db)):
+    return crud.update_turno(db, turno_id, turno)

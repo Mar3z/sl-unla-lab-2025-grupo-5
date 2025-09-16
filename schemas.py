@@ -39,3 +39,8 @@ class Turno(TurnoBase):
     class Config:
         from_attributes = True
 
+class TurnoUpdate(BaseModel):
+    persona_id: Optional[int] = None
+    fecha: Optional[date] = None
+    hora: Optional[str] = None
+    estado: Optional[str] = None

@@ -101,3 +101,29 @@ def delete_turno(db: Session, turno_id: int):
     db.commit()
     return {"message": "Turno eliminado correctamente"}
 
+def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
+    db_turno = get_turno(db, turno_id)
+    if not db_turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # Si se cambia la persona, verificar regla de negocio
+    if turno.persona_id and turno.persona_id != db_turno.persona_id:
+        turnos_cancelados = get_turnos_cancelados_recientes(db, turno.persona_id)
+        if turnos_cancelados >= 5:
+            raise HTTPException(
+                status_code=400, 
+                detail="La nueva persona tiene 5 o más turnos cancelados en los últimos 6 meses"
+            )
+    
+    update_data = turno.dict(exclude_unset=True)
+    
+    # Convertir string de hora a objeto time si se proporciona
+    if "hora" in update_data:
+        update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()
+    
+    for key, value in update_data.items():
+        setattr(db_turno, key, value)
+    
+    db.commit()
+    db.refresh(db_turno)
+    return db_turno
