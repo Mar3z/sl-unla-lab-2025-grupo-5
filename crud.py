@@ -1,0 +1,103 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, func
+from datetime import date, datetime, timedelta
+import models
+import schemas
+from fastapi import HTTPException
+
+# CRUD para Personas
+def create_persona(db: Session, persona: schemas.PersonaCreate):
+    if db.query(models.Persona).filter(models.Persona.email == persona.email).first():
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+    
+    if db.query(models.Persona).filter(models.Persona.dni == persona.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
+    
+    db_persona = models.Persona(**persona.dict())
+    db.add(db_persona)
+    db.commit()
+    db.refresh(db_persona)
+    return db_persona
+
+def get_personas(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Persona).offset(skip).limit(limit).all()
+
+def get_persona(db: Session, persona_id: int):
+    return db.query(models.Persona).filter(models.Persona.id == persona_id).first()
+
+def update_persona(db: Session, persona_id: int, persona: schemas.PersonaCreate):
+    db_persona = get_persona(db, persona_id)
+    if not db_persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    for key, value in persona.dict().items():
+        setattr(db_persona, key, value)
+    
+    db.commit()
+    db.refresh(db_persona)
+    return db_persona
+
+def delete_persona(db: Session, persona_id: int):
+    db_persona = get_persona(db, persona_id)
+    if not db_persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    db.delete(db_persona)
+    db.commit()
+    return {"message": "Persona eliminada correctamente"}
+
+# CRUD para Turnos
+def get_turnos_cancelados_recientes(db: Session, persona_id: int):
+    seis_meses_atras = date.today() - timedelta(days=180)
+    
+    return db.query(models.Turno).filter(
+        and_(
+            models.Turno.persona_id == persona_id,
+            models.Turno.estado == "cancelado",
+            models.Turno.fecha >= seis_meses_atras
+        )
+    ).count()
+
+def create_turno(db: Session, turno: schemas.TurnoCreate):
+    # Verificar si la persona existe
+    persona = db.query(models.Persona).filter(models.Persona.id == turno.persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    # Verificar regla de negocio: máximo 5 turnos cancelados en últimos 6 meses
+    turnos_cancelados = get_turnos_cancelados_recientes(db, turno.persona_id)
+    if turnos_cancelados >= 5:
+        raise HTTPException(
+            status_code=400, 
+            detail="La persona tiene 5 o más turnos cancelados en los últimos 6 meses"
+        )
+    
+    # Convertir string de hora a objeto time
+    hora_obj = datetime.strptime(turno.hora, "%H:%M").time()
+    
+    db_turno = models.Turno(
+        fecha=turno.fecha,
+        hora=hora_obj,
+        estado=turno.estado,
+        persona_id=turno.persona_id
+    )
+    
+    db.add(db_turno)
+    db.commit()
+    db.refresh(db_turno)
+    return db_turno
+
+def get_turnos(db: Session):
+    return db.query(models.Turno).all()
+
+def get_turno(db: Session, turno_id: int):
+    return db.query(models.Turno).filter(models.Turno.id == turno_id).first()
+
+def delete_turno(db: Session, turno_id: int):
+    db_turno = get_turno(db, turno_id)
+    if not db_turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    db.delete(db_turno)
+    db.commit()
+    return {"message": "Turno eliminado correctamente"}
+
