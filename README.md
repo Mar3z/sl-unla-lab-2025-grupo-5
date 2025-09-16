@@ -44,6 +44,6 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 4. **PUT /personas/{id}** → Actualización de persona (*responsable: LourdesCrespo*)
 5. **DELETE /personas/{id}** → Baja de persona (*responsable: LourdesCrespo*)
 
-------------------------------------------------------------------------------------
            - Email y DNI deben ser únicos → en caso de duplicados, retorna error HTTP 400.
            - Manejo de errores controlado para evitar que el servidor se caiga (Internal Server Error).
+---------------------------------------------------------------------------------------------
