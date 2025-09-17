@@ -25,12 +25,14 @@ def get_personas(db: Session, skip: int = 0, limit: int = 100):
 def get_persona(db: Session, persona_id: int):
     return db.query(models.Persona).filter(models.Persona.id == persona_id).first()
 
-def update_persona(db: Session, persona_id: int, persona: schemas.PersonaCreate):
+def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate):
     db_persona = get_persona(db, persona_id)
     if not db_persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
+
+    update_data = persona.dict(exclude_unset=True)
     
-    for key, value in persona.dict().items():
+    for key, value in update_data.items():
         setattr(db_persona, key, value)
     
     db.commit()
@@ -78,7 +80,6 @@ def create_turno(db: Session, turno: schemas.TurnoCreate):
     db_turno = models.Turno(
         fecha=turno.fecha,
         hora=hora_obj,
-        estado=turno.estado,
         persona_id=turno.persona_id
     )
     
