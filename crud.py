@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 import models
 import schemas
 from fastapi import HTTPException
@@ -128,3 +128,21 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
     db.commit()
     db.refresh(db_turno)
     return db_turno
+
+
+def get_turnos_disponibles(db: Session, fecha: date):
+    # Horarios posibles de 09:00 a 17:00, intervalos de 30 minutos
+    horarios = [time(hour=h, minute=m) for h in range(9, 17) for m in (0, 30)]
+    
+    # Obtener turnos ocupados o confirmados para esa fecha
+    turnos_ocupados = db.query(models.Turno).filter(
+        models.Turno.fecha == fecha,
+        models.Turno.estado != "cancelado"
+    ).all()
+    
+    horas_ocupadas = {t.hora for t in turnos_ocupados}
+    
+    # Filtrar horarios disponibles
+    horarios_disponibles = [h.strftime("%H:%M") for h in horarios if h not in horas_ocupadas]
+    
+    return {"fecha": fecha, "horarios_disponibles": horarios_disponibles}

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends,HTTPException
+from fastapi import FastAPI, Depends,HTTPException, Query
 from sqlalchemy.orm import Session
 from database import SessionLocal,engine,Base, get_db  #Me aseguro de que exista database.py con SessionLocal
 from models import Persona
@@ -6,9 +6,10 @@ from schemas import PersonaCreate,Persona as PersonaSchema
 import models
 import schemas
 import crud
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from sqlalchemy.exc import IntegrityError
 from typing import List
+
 
 #Creo tablas
 Base.metadata.create_all(bind=engine)
@@ -74,3 +75,13 @@ def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
 @app.put("/turnos/{turno_id}", response_model=schemas.Turno)
 def actualizar_turno(turno_id: int, turno: schemas.TurnoUpdate, db: Session = Depends(get_db)):
     return crud.update_turno(db, turno_id, turno)
+
+
+@app.get("/turnos-disponibles")
+def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
+    try:
+        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Debe ser YYYY-MM-DD")
+    
+    return crud.get_turnos_disponibles(db, fecha_obj)
