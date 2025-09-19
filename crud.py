@@ -7,6 +7,18 @@ from fastapi import HTTPException
 
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
+
+    # Validación de DNI
+    if persona.dni < 0:
+        raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
+    if len(str(persona.dni)) != 8:
+        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
+
+    # Validación de fecha de nacimiento
+    if persona.fecha_nacimiento > date.today():
+        raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
+
+    # Validación de email y dni repetido
     if db.query(models.Persona).filter(models.Persona.email == persona.email).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
     
@@ -29,6 +41,16 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaCreate)
     db_persona = get_persona(db, persona_id)
     if not db_persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
+    
+    # Validación de DNI
+    if persona.dni < 0:
+        raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
+    if len(str(persona.dni)) != 8:
+        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
+
+    # Validación de fecha de nacimiento
+    if persona.fecha_nacimiento > date.today():
+        raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
     
     for key, value in persona.dict().items():
         setattr(db_persona, key, value)
