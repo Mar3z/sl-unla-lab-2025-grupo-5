@@ -42,7 +42,7 @@ def obtener_persona(persona_id: int, db: Session = Depends(get_db)):
 
 # Actualizar personas por id / PUT
 @app.put("/personas/{persona_id}", response_model=PersonaSchema)
-def actualizar_persona(persona_id: int, persona: schemas.PersonaUpdate, db: Session = Depends(get_db)):
+def actualizar_persona(persona_id: int, persona: schemas.PersonaCreate, db: Session = Depends(get_db)):
     return crud.update_persona(db, persona_id, persona)
 
 # Eliminar personas por id/ DELETE

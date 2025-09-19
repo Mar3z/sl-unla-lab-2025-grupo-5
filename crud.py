@@ -8,7 +8,7 @@ from fastapi import HTTPException
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
 
-    dni = int(persona.dni)
+    dniConvertido = int(persona.dni)
     #Validaciones de nombre y apellido no vacios y no numericos
     if not persona.nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
@@ -17,7 +17,7 @@ def create_persona(db: Session, persona: schemas.PersonaCreate):
 
 
     # Validación de DNI
-    if persona.dni < 0:
+    if dniConvertido < 0:
         raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
     if len(str(persona.dni)) != 8:
         raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
@@ -51,9 +51,9 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate)
         raise HTTPException(status_code=404, detail="Persona no encontrada")
 
     update_data = persona.dict(exclude_unset=True)
-    
+    dniConvertido = int(persona.dni)
     # Validación de DNI
-    if persona.dni < 0:
+    if dniConvertido < 0:
         raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
     if len(str(persona.dni)) != 8:
         raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
