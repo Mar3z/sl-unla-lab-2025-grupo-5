@@ -7,12 +7,12 @@ from fastapi import HTTPException
 
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
-    
+
     #Validaciones de nombre y apellido no vacios y no numericos
     if not persona.nombre.strip():
-    raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
+        raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
     if any(char.isdigit() for char in persona.nombre):
-    raise HTTPException(status_code=400, detail="El nombre no puede contener números")
+        raise HTTPException(status_code=400, detail="El nombre no puede contener números")
 
 
     # Validación de DNI
@@ -51,7 +51,6 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate)
 
     update_data = persona.dict(exclude_unset=True)
     
-<<<<<<< HEAD
     # Validación de DNI
     if persona.dni < 0:
         raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
@@ -63,9 +62,6 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate)
         raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
     
     for key, value in persona.dict().items():
-=======
-    for key, value in update_data.items():
->>>>>>> 72fe61bdaf890301ed5acfe5dd0ec6e78db9957b
         setattr(db_persona, key, value)
     
     db.commit()
