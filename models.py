@@ -8,6 +8,7 @@ from database import Base
 
 from datetime import date
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 # Creo la tabla personas
 class Persona(Base):
@@ -21,7 +22,7 @@ class Persona(Base):
     fecha_nacimiento = Column(Date)
     habilitado = Column(Boolean, default=True)
 
-    turnos = relationship("Turno", back_populates="persona")
+    turnos = relationship("Turno", back_populates="persona", cascade="all, delete-orphan")
 
     @property
     def edad(self):
@@ -39,6 +40,6 @@ class Turno(Base):
     fecha = Column(Date, nullable=False)
     hora = Column(Time, nullable=False)
     estado = Column(String, default="pendiente")
-    persona_id = Column(Integer, ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(Integer, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False)
     
     persona = relationship("Persona", back_populates="turnos")

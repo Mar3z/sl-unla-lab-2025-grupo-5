@@ -44,11 +44,14 @@ def get_personas(db: Session, skip: int = 0, limit: int = 100):
 def get_persona(db: Session, persona_id: int):
     return db.query(models.Persona).filter(models.Persona.id == persona_id).first()
 
-def update_persona(db: Session, persona_id: int, persona: schemas.PersonaCreate):
+def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate):
     db_persona = get_persona(db, persona_id)
     if not db_persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
+
+    update_data = persona.dict(exclude_unset=True)
     
+<<<<<<< HEAD
     # Validación de DNI
     if persona.dni < 0:
         raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
@@ -60,6 +63,9 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaCreate)
         raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
     
     for key, value in persona.dict().items():
+=======
+    for key, value in update_data.items():
+>>>>>>> 72fe61bdaf890301ed5acfe5dd0ec6e78db9957b
         setattr(db_persona, key, value)
     
     db.commit()
@@ -107,7 +113,6 @@ def create_turno(db: Session, turno: schemas.TurnoCreate):
     db_turno = models.Turno(
         fecha=turno.fecha,
         hora=hora_obj,
-        estado=turno.estado,
         persona_id=turno.persona_id
     )
     

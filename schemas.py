@@ -23,10 +23,17 @@ class Persona(PersonaBase):#para respuestas
         orm_mode = True #SQLAlchemy me devuelve los objetos directamente
         from_attributes = True
 
+class PersonaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[EmailStr] = None
+    dni: Optional[str] = None
+    telefono: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    habilitado: Optional[bool] = None
+
 class TurnoBase(BaseModel):
     fecha: date
     hora: time
-    estado: str
     persona_id: int
 
 class TurnoCreate(TurnoBase):
@@ -35,6 +42,7 @@ class TurnoCreate(TurnoBase):
 class Turno(TurnoBase):
     id: int
     persona: Persona
+    estado: str = "pendiente"
     
     class Config:
         from_attributes = True
