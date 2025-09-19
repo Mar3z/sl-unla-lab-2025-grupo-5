@@ -8,6 +8,7 @@ from fastapi import HTTPException
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
 
+    dni = int(persona.dni)
     #Validaciones de nombre y apellido no vacios y no numericos
     if not persona.nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
