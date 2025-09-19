@@ -7,6 +7,26 @@ from fastapi import HTTPException
 
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
+
+    dniConvertido = int(persona.dni)
+    #Validaciones de nombre y apellido no vacios y no numericos
+    if not persona.nombre.strip():
+        raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
+    if any(char.isdigit() for char in persona.nombre):
+        raise HTTPException(status_code=400, detail="El nombre no puede contener números")
+
+
+    # Validación de DNI
+    if dniConvertido < 0:
+        raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
+    if len(str(persona.dni)) != 8:
+        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
+
+    # Validación de fecha de nacimiento
+    if persona.fecha_nacimiento > date.today():
+        raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
+
+    # Validación de email y dni repetido
     if db.query(models.Persona).filter(models.Persona.email == persona.email).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
     
@@ -31,8 +51,18 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate)
         raise HTTPException(status_code=404, detail="Persona no encontrada")
 
     update_data = persona.dict(exclude_unset=True)
+    dniConvertido = int(persona.dni)
+    # Validación de DNI
+    if dniConvertido < 0:
+        raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
+    if len(str(persona.dni)) != 8:
+        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
+
+    # Validación de fecha de nacimiento
+    if persona.fecha_nacimiento > date.today():
+        raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
     
-    for key, value in update_data.items():
+    for key, value in persona.dict().items():
         setattr(db_persona, key, value)
     
     db.commit()
