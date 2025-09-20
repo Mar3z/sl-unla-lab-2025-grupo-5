@@ -100,6 +100,18 @@ def get_turnos_cancelados_recientes(db: Session, persona_id: int):
     ).count()
 
 def create_turno(db: Session, turno: schemas.TurnoCreate):
+
+    # Verificar si se quiere agendar en una fecha que ya pasó
+    fecha_turno = turno.fecha
+    fecha_actual = date.today()
+    if fecha_turno < fecha_actual:
+        raise HTTPException(status_code=400, detail="No se pueden crear turnos en fechas pasadas")
+
+    # Verificar que se respete el rango horario
+    hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
+    if hora_turno < time(9, 0) or hora_turno > time(16, 30):
+        raise HTTPException(status_code=400, detail="El horario del turno excede el rango permitido")
+
     # Verificar si la persona existe
     persona = db.query(models.Persona).filter(models.Persona.id == turno.persona_id).first()
     if not persona:
@@ -145,6 +157,21 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
     db_turno = get_turno(db, turno_id)
     if not db_turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
+
+    update_data = turno.dict(exclude_unset=True)
+
+    # Verificar si se quiere agendar en una fecha que ya pasó
+    if "fecha" in update_data:
+        fecha_turno = turno.fecha
+        fecha_actual = date.today()
+        if fecha_turno < fecha_actual:
+            raise HTTPException(status_code=400, detail="No se pueden crear turnos en fechas pasadas")
+
+    # Verificar que se respete el rango horario
+    if "hora" in update_data:
+        hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
+        if hora_turno < time(9, 0) or hora_turno > time(16, 30):
+            raise HTTPException(status_code=400, detail="El horario del turno excede el rango permitido")
     
     # Si se cambia la persona, verificar regla de negocio
     if turno.persona_id and turno.persona_id != db_turno.persona_id:
@@ -154,8 +181,6 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
                 status_code=400, 
                 detail="La nueva persona tiene 5 o más turnos cancelados en los últimos 6 meses"
             )
-    
-    update_data = turno.dict(exclude_unset=True)
     
     # Convertir string de hora a objeto time si se proporciona
     if "hora" in update_data:

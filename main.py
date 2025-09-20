@@ -15,11 +15,9 @@ from typing import List
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="SL-UNLA-LAB-2025-GRUPO-5")
 
-#Endpoint de prueba
-"""@app.get("/")
+@app.get("/")
 def inicio():
-    return {"mensaje": "Probando si funciona la api"}"""
-
+    return {"mensaje": "SL-UNLA-LAB-2025-GRUPO-5"}
 
 # ----- ENDPOINTS DE PERSONAS (CRUD) -----
 
