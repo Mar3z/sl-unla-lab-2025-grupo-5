@@ -19,7 +19,6 @@ def create_persona(db: Session, persona: schemas.PersonaCreate):
     if any(char.isdigit() for char in persona.nombre):
         raise HTTPException(status_code=400, detail="El nombre no puede contener números")
 
-
     # Validación de DNI
     if dniConvertido < 0:
         raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
@@ -185,6 +184,12 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
     # Convertir string de hora a objeto time si se proporciona
     if "hora" in update_data:
         update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()
+
+    # Verificar si se cambia a un estado permitido por el sistema
+    if "estado" in update_data:
+        estados_permitidos = ["pendiente", "cancelado", "confirmado", "asistido"]
+        if turno.estado not in estados_permitidos:
+            raise HTTPException(status_code=400, detail="El estado ingresado no es válido")
     
     for key, value in update_data.items():
         setattr(db_turno, key, value)
