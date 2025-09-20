@@ -8,7 +8,11 @@ from fastapi import HTTPException
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
 
+    if not persona.dni.isdigit():
+        raise HTTPException(status_code=400, detail="El DNI debe ser un valor numérico")
+
     dniConvertido = int(persona.dni)
+    
     #Validaciones de nombre y apellido no vacios y no numericos
     if not persona.nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
@@ -51,18 +55,23 @@ def update_persona(db: Session, persona_id: int, persona: schemas.PersonaUpdate)
         raise HTTPException(status_code=404, detail="Persona no encontrada")
 
     update_data = persona.dict(exclude_unset=True)
-    dniConvertido = int(persona.dni)
-    # Validación de DNI
-    if dniConvertido < 0:
-        raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
-    if len(str(persona.dni)) != 8:
-        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
 
-    # Validación de fecha de nacimiento
-    if persona.fecha_nacimiento > date.today():
-        raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
+    if "dni" in update_data:
+        if not update_data["dni"].isdigit():
+            raise HTTPException(status_code=400, detail="El DNI debe ser un valor numérico")
+        dniConvertido = int(persona.dni)
+        # Validación de DNI
+        if dniConvertido < 0:
+            raise HTTPException(status_code=400, detail="El DNI no puede ser negativo")
+        if len(str(persona.dni)) != 8:
+            raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos")
+
+    if "fecha_nacimiento" in update_data:
+        # Validación de fecha de nacimiento
+        if persona.fecha_nacimiento > date.today():
+            raise HTTPException(status_code=400, detail="La fecha de nacimiento no puede ser futura")
     
-    for key, value in persona.dict().items():
+    for key, value in update_data.items():
         setattr(db_persona, key, value)
     
     db.commit()
