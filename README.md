@@ -54,5 +54,33 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
            - Manejo de errores controlado para evitar que el servidor se caiga (Internal Server Error).
 ---------------------------------------------------------------------------------------------
 
+# ABM TURNOS
+ - Realizado por Martín Barreto -
+
+### TAREAS REALIZADAS
+* Implementación y creación de la clase *TURNOS*
+* Creación de los métodos para crear, listar, buscar y modificar turnos
+* Atributos implementados a la clase:
+  - 'id' (primary_key)
+  - 'fecha'
+  - 'hora'
+  - 'persona_id' (Crea la conexión con la clase Persona)
+  - 'estado' (Por defecto se crea como 'pendiente')
+
+### ENDPOINT
+ ** POST (/turnos) > Crea un nuevo turno
+ ** GET (/turnos) > Lista todos los turnos
+ ** GET (/turnos/{id}) > Obtiene un turno a través de su id
+ ** UPDATE (/turnos/{id}) > Modifica un turno a través de su id
+ ** DELETE (/turnos/{id}) > Elimina un turno a través de su id
+
+### VALIDACIONES REALIZADAS
+ - La fecha del turno no puede ser anterior a la fecha actual
+ - El horario del turno no puede exceder el rango horario del negocio
+ - No se le puede asignar un turno a un usuario que registre 5 turnos o más cancelados en los últimos 6 meses
+ - No se puede asignar un estado que no sea 'pendiente', 'cancelado', 'confirmado' o 'asistido'
+
+
+
 
 
