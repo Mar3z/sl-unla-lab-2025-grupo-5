@@ -43,6 +43,8 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 * Cálculo automático de edad a partir de la fecha de nacimiento.
 * Validación de fecha de nacimiento → no se permite una fecha futura.
 * Email y DNI deben ser **únicos** → si se intenta duplicar, retorna **HTTP 400**.
+* El nombre no puede estar vacio y no puede contener numeros.
+* El DNI solo puede ser de 8 digitos y no puede ser negativo
 * Manejo de errores controlado para evitar **Internal Server Error**.
 
 ### Endpoints implementados
@@ -55,6 +57,8 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 
            - Email y DNI deben ser únicos → en caso de duplicados, retorna error HTTP 400.
            - Manejo de errores controlado para evitar que el servidor se caiga (Internal Server Error).
+           - El nombre no puede estar vacio y no puede contener numeros.
+           - El DNI solo puede ser de 8 digitos y no puede ser negativo
 ---------------------------------------------------------------------------------------------
 
 # ABM TURNOS
