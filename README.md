@@ -6,6 +6,9 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 - Brandan Fabrizio              @fabriziobrandan-cpu
 - Crespo Barreira Lourdes Noelia    @LourdesCrespo
 
+**Link al video en YouTube** https://youtu.be/LxFqV9-48NE
+**Link al Drive con las postman collection** https://drive.google.com/drive/folders/1dolAP98gcWkMu7YS27ySt-flRty8snt6?usp=sharing
+
 # Instrucciones para levantar el proyecto
 - Utilizar el comando "git clone https://github.com/Mar3z/sl-unla-lab-2025-grupo-5.git" para descargar el proyecto.
 - Una vez descargado, dentro de su entorno virtual, ejecutar el comando "pip install -r requirements.txt" para descargar las dependencias necesarias.
