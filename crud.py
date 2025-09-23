@@ -4,6 +4,10 @@ from datetime import date, datetime, timedelta, time
 import models
 import schemas
 from fastapi import HTTPException
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Carga las variables de entorno
 
 # CRUD para Personas
 def create_persona(db: Session, persona: schemas.PersonaCreate):
@@ -107,9 +111,11 @@ def create_turno(db: Session, turno: schemas.TurnoCreate):
         raise HTTPException(status_code=400, detail="No se pueden crear turnos en fechas pasadas")
 
     # Verificar que se respete el rango horario
+    hora_apertura = datetime.strptime(os.getenv("HORARIO_APERTURA"), "%H:%M").time()
+    hora_cierre = datetime.strptime(os.getenv("HORARIO_CIERRE"), "%H:%M").time()
     hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
-    if hora_turno < time(9, 0) or hora_turno > time(16, 30):
-        raise HTTPException(status_code=400, detail="El horario del turno excede el rango permitido")
+    if hora_turno < hora_apertura or hora_turno > hora_cierre:
+        raise HTTPException(status_code=400, detail=f"El horario del turno excede el rango permitido ({hora_apertura} a {hora_cierre})")
 
     # Verificar si la persona existe
     persona = db.query(models.Persona).filter(models.Persona.id == turno.persona_id).first()
@@ -118,10 +124,11 @@ def create_turno(db: Session, turno: schemas.TurnoCreate):
     
     # Verificar regla de negocio: máximo 5 turnos cancelados en últimos 6 meses
     turnos_cancelados = get_turnos_cancelados_recientes(db, turno.persona_id)
-    if turnos_cancelados >= 5:
+    turnos_permitidos = int(os.getenv("MAX_TURNOS_CANCELADOS_PERMITIDOS"))
+    if turnos_cancelados >= turnos_permitidos:
         raise HTTPException(
             status_code=400, 
-            detail="La persona tiene 5 o más turnos cancelados en los últimos 6 meses"
+            detail=f"La persona tiene {turnos_permitidos} o más turnos cancelados en los últimos 6 meses"
         )
     
     # Convertir string de hora a objeto time
@@ -168,9 +175,11 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
 
     # Verificar que se respete el rango horario
     if "hora" in update_data:
+        hora_apertura = datetime.strptime(os.getenv("HORARIO_APERTURA"), "%H:%M").time()
+        hora_cierre = datetime.strptime(os.getenv("HORARIO_CIERRE"), "%H:%M").time()
         hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
-        if hora_turno < time(9, 0) or hora_turno > time(16, 30):
-            raise HTTPException(status_code=400, detail="El horario del turno excede el rango permitido")
+        if hora_turno < hora_apertura or hora_turno > hora_cierre:
+            raise HTTPException(status_code=400, detail=f"El horario del turno excede el rango permitido ({hora_apertura} a {hora_cierre})")
     
     # Si se cambia la persona, verificar regla de negocio
     if turno.persona_id and turno.persona_id != db_turno.persona_id:
@@ -187,7 +196,7 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
 
     # Verificar si se cambia a un estado permitido por el sistema
     if "estado" in update_data:
-        estados_permitidos = ["pendiente", "cancelado", "confirmado", "asistido"]
+        estados_permitidos = os.getenv("ESTADOS_TURNO").split(",")
         if turno.estado not in estados_permitidos:
             raise HTTPException(status_code=400, detail="El estado ingresado no es válido")
     
