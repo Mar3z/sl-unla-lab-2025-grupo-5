@@ -87,6 +87,29 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
  - No se le puede asignar un turno a un usuario que registre 5 turnos o más cancelados en los últimos 6 meses
  - No se puede asignar un estado que no sea 'pendiente', 'cancelado', 'confirmado' o 'asistido'
 
+---------------------------------------------------------------------------------------------
+
+# CALCULO DE TURNOS DISPONIBLES
+ - Realizado por Fabrizio Brandan -
+
+### TAREAS REALIZADAS
+ * Implementación del endpoint para el cálculo dinámico de turnos disponibles
+ * Definición del rango horario de turnos posibles: de 09:00 a 17:00, en intervalos de 30 minutos
+ * Consulta a la base de datos para verificar turnos ocupados y cancelados
+ * Implementación de la lógica que retorna únicamente los turnos libres en base a la fecha solicitada
+ * Manejo de errores para fechas inválidas o con formato incorrecto
+
+### ENDPOINT
+ ** GET (/turnos-disponibles?fecha=YYYY-MM-DD) > Retorna los horarios disponibles para la fecha indicada
+
+### VALIDACIONES REALIZADAS
+ - Solo se permiten fechas en formato YYYY-MM-DD
+ - Los turnos disponibles son aquellos que no han sido asignados o que tienen estado 'cancelado'
+ - Si un turno está tomado, no aparece en la respuesta
+ - La consulta devuelve todos los horarios en intervalos de 30 minutos que aún estén libres
+ - En caso de que no haya horarios disponibles, se retorna una lista vacía en formato JSON
+
+ 
 
 
 
