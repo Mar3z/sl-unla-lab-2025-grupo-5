@@ -83,3 +83,13 @@ def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYY
         raise HTTPException(status_code=400, detail="Formato de fecha inválido. Debe ser YYYY-MM-DD")
     
     return crud.get_turnos_disponibles(db, fecha_obj)
+
+# >>> Endpoints de gestion de estado de turno <<< (PARTE D)
+
+@app.put("/turnos/{turno_id}/cancelar", response_model=schemas.Turno)
+def cancelar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
+    return crud.cancelar_turno(db, turno_id)
+
+@app.put("/turnos/{turno_id}/confirmar", response_model=schemas.Turno)
+def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
+    return crud.confirmar_turno(db, turno_id)
