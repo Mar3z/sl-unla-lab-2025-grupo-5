@@ -109,7 +109,28 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
           - La consulta devuelve todos los horarios en intervalos de 30 minutos que aún estén libres
           - En caso de que no haya horarios disponibles, se retorna una lista vacía en formato JSON
 
- 
+---------------------------------------------------------------------------------------------------
+
+### Implementación de la parte D del trabajo práctico: gestión de estado de turno.
+Realizado por LourdesCrespo
+
+### Cambios realizados
+- Agregadas funciones `cancelar_turno` y `confirmar_turno` en `crud.py`.
+- Nuevos endpoints `PUT /turnos/{id}/cancelar` y `PUT /turnos/{id}/confirmar` en `main.py`.
+- Se restringió `update_turno` para que no permita modificar el campo `estado`.
+
+### Reglas de negocio aplicadas
+- No se puede modificar un turno ya cancelado o asistido.
+- No se pueden eliminar ni cancelar turnos asistidos.
+- Turnos cancelados liberan el horario (eliminación lógica).
+
+### Testing
+Se realizaron pruebas en Postman verificando:
+- Cancelación correcta de turno pendiente.
+- Confirmación correcta de turno pendiente.
+- Errores adecuados al cancelar/confirmar turnos ya cancelados o asistidos.
+  
+  ----------------------------------------------------------------------------------------------------
 
 
 
