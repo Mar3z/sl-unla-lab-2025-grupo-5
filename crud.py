@@ -224,3 +224,21 @@ def get_turnos_disponibles(db: Session, fecha: date):
     horarios_disponibles = [h.strftime("%H:%M") for h in horarios if h not in horas_ocupadas]
     
     return {"fecha": fecha, "horarios_disponibles": horarios_disponibles}
+
+
+# >>> CRUD de turnos (parte D) <<<
+
+def cancelar_turno(db: Session, turno_id: int):
+    turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
+    if not turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # No se puede modificar si ya está cancelado o asistido
+    if turno.estado in ["cancelado", "asistido"]:
+        raise HTTPException(status_code=400, detail="No se puede cancelar un turno ya cancelado o asistido")
+    
+    turno.estado = "cancelado"
+    db.commit()
+    db.refresh(turno)
+    return turno
+
