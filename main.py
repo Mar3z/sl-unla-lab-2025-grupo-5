@@ -71,9 +71,23 @@ def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
     return crud.delete_turno(db, turno_id)
 
 @app.put("/turnos/{turno_id}", response_model=schemas.Turno, tags=["Turnos"])
-def actualizar_turno(turno_id: int, turno: schemas.TurnoUpdate, db: Session = Depends(get_db)):
-    return crud.update_turno(db, turno_id, turno)
+def update_turno(turno_id: int, turno: schemas.TurnoUpdate, db: Session = Depends(get_db)):
+    db_turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
+    if not db_turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
 
+    update_data = turno.dict(exclude_unset=True)
+
+    #No permitir modificar el estado desde este endpoint
+    if "estado" in update_data:
+        update_data.pop("estado")
+
+    for key, value in update_data.items():
+        setattr(db_turno, key, value)
+
+    db.commit()
+    db.refresh(db_turno)
+    return db_turno
 
 @app.get("/turnos-disponibles", tags=["Turnos"])
 def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
@@ -83,3 +97,14 @@ def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYY
         raise HTTPException(status_code=400, detail="Formato de fecha inválido. Debe ser YYYY-MM-DD")
     
     return crud.get_turnos_disponibles(db, fecha_obj)
+
+# >>> Endpoints de gestion de estado de turno <<< (PARTE D)
+
+@app.put("/turnos/{turno_id}/cancelar", response_model=schemas.Turno)
+def cancelar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
+    return crud.cancelar_turno(db, turno_id)
+
+
+@app.put("/turnos/{turno_id}/confirmar", response_model=schemas.Turno)
+def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
+    return crud.confirmar_turno(db, turno_id)
