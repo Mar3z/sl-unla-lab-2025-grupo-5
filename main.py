@@ -71,7 +71,7 @@ def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
     return crud.delete_turno(db, turno_id)
 
 @app.put("/turnos/{turno_id}", response_model=schemas.Turno, tags=["Turnos"])
-def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
+def update_turno(turno_id: int, turno: schemas.TurnoUpdate, db: Session = Depends(get_db)):
     db_turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
     if not db_turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
@@ -88,9 +88,6 @@ def update_turno(db: Session, turno_id: int, turno: schemas.TurnoUpdate):
     db.commit()
     db.refresh(db_turno)
     return db_turno
-
-
-
 
 @app.get("/turnos-disponibles", tags=["Turnos"])
 def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
