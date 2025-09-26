@@ -242,3 +242,33 @@ def cancelar_turno(db: Session, turno_id: int):
     db.refresh(turno)
     return turno
 
+# >>> CRUD de turnos (parte D) <<<
+
+def cancelar_turno(db: Session, turno_id: int):
+    turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
+    if not turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # No se puede modificar si ya está cancelado o asistido
+    if turno.estado in ["cancelado", "asistido"]:
+        raise HTTPException(status_code=400, detail="No se puede cancelar un turno ya cancelado o asistido")
+    
+    turno.estado = "cancelado"
+    db.commit()
+    db.refresh(turno)
+    return turno
+
+
+def confirmar_turno(db: Session, turno_id: int):
+    turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
+    if not turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # No se puede modificar si ya está cancelado o asistido
+    if turno.estado in ["cancelado", "asistido"]:
+        raise HTTPException(status_code=400, detail="No se puede confirmar un turno cancelado o asistido")
+    
+    turno.estado = "confirmado"
+    db.commit()
+    db.refresh(turno)
+    return turno
