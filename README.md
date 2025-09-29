@@ -75,17 +75,17 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
   - 'estado' (Por defecto se crea como 'pendiente')
 
 ### ENDPOINT
- ** POST (/turnos) > Crea un nuevo turno
- ** GET (/turnos) > Lista todos los turnos
- ** GET (/turnos/{id}) > Obtiene un turno a través de su id
- ** UPDATE (/turnos/{id}) > Modifica un turno a través de su id
- ** DELETE (/turnos/{id}) > Elimina un turno a través de su id
+ 1. **POST (/turnos)** -> Crea un nuevo turno
+ 2. **GET (/turnos)** -> Lista todos los turnos
+ 3. **GET (/turnos/{id})** -> Obtiene un turno a través de su id
+ 4. **UPDATE (/turnos/{id})** -> Modifica un turno a través de su id
+ 5. **DELETE (/turnos/{id})** -> Elimina un turno a través de su id
 
 ### VALIDACIONES REALIZADAS
- - La fecha del turno no puede ser anterior a la fecha actual
- - El horario del turno no puede exceder el rango horario del negocio
- - No se le puede asignar un turno a un usuario que registre 5 turnos o más cancelados en los últimos 6 meses
- - No se puede asignar un estado que no sea 'pendiente', 'cancelado', 'confirmado' o 'asistido'
+          - La fecha del turno no puede ser anterior a la fecha actual
+          - El horario del turno no puede exceder el rango horario del negocio
+          - No se le puede asignar un turno a un usuario que registre 5 turnos o más cancelados en los últimos 6 meses
+          - No se puede asignar un estado que no sea 'pendiente', 'cancelado', 'confirmado' o 'asistido'
 
 ---------------------------------------------------------------------------------------------
 
@@ -100,16 +100,37 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
  * Manejo de errores para fechas inválidas o con formato incorrecto
 
 ### ENDPOINT
- ** GET (/turnos-disponibles?fecha=YYYY-MM-DD) > Retorna los horarios disponibles para la fecha indicada
+ **GET (/turnos-disponibles?fecha=YYYY-MM-DD)** -> Retorna los horarios disponibles para la fecha indicada
 
 ### VALIDACIONES REALIZADAS
- - Solo se permiten fechas en formato YYYY-MM-DD
- - Los turnos disponibles son aquellos que no han sido asignados o que tienen estado 'cancelado'
- - Si un turno está tomado, no aparece en la respuesta
- - La consulta devuelve todos los horarios en intervalos de 30 minutos que aún estén libres
- - En caso de que no haya horarios disponibles, se retorna una lista vacía en formato JSON
+          - Solo se permiten fechas en formato YYYY-MM-DD
+          - Los turnos disponibles son aquellos que no han sido asignados o que tienen estado 'cancelado'
+          - Si un turno está tomado, no aparece en la respuesta
+          - La consulta devuelve todos los horarios en intervalos de 30 minutos que aún estén libres
+          - En caso de que no haya horarios disponibles, se retorna una lista vacía en formato JSON
 
- 
+---------------------------------------------------------------------------------------------------
+
+### Implementación de la parte D del trabajo práctico: gestión de estado de turno.
+Realizado por LourdesCrespo
+
+### Cambios realizados
+- Agregadas funciones `cancelar_turno` y `confirmar_turno` en `crud.py`.
+- Nuevos endpoints `PUT /turnos/{id}/cancelar` y `PUT /turnos/{id}/confirmar` en `main.py`.
+- Se restringió `update_turno` para que no permita modificar el campo `estado`.
+
+### Reglas de negocio aplicadas
+- No se puede modificar un turno ya cancelado o asistido.
+- No se pueden eliminar ni cancelar turnos asistidos.
+- Turnos cancelados liberan el horario (eliminación lógica).
+
+### Testing
+Se realizaron pruebas en Postman verificando:
+- Cancelación correcta de turno pendiente.
+- Confirmación correcta de turno pendiente.
+- Errores adecuados al cancelar/confirmar turnos ya cancelados o asistidos.
+  
+  ----------------------------------------------------------------------------------------------------
 
 
 
