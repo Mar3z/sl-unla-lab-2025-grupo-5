@@ -108,3 +108,14 @@ def cancelar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
 @app.put("/turnos/{turno_id}/confirmar", response_model=schemas.Turno)
 def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
     return crud.confirmar_turno(db, turno_id)
+
+# >>> Endpoints de reportes <<<
+@app.get("/reportes/turnos-por-fecha", response_model=list[schemas.Turno], tags=["Reportes"])
+def reporte_turnos_por_fecha(fecha: date = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
+    try:
+        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Debe ser YYYY-MM-DD")
+    turnos = crud.get_turnos_por_fecha(db, fecha)
+    return turnos
+

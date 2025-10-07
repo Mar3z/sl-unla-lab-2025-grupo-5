@@ -255,3 +255,8 @@ def confirmar_turno(db: Session, turno_id: int):
     db.commit()
     db.refresh(turno)
     return turno
+
+# >>> REPORTES DE TURNOS <<<<
+
+def get_turnos_por_fecha(db: Session, fecha: date):
+    return db.query(models.Turno).filter(models.Turno.fecha == fecha).all()

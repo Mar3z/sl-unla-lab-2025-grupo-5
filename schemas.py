@@ -11,7 +11,7 @@ class PersonaBase(BaseModel): #clase base que define los campos obligatorios de 
     fecha_nacimiento: date
 
 class PersonaCreate(PersonaBase):#para crear personas (hereda de PersonaBase)
-    habilitado: Optional[bool] = True
+    pass
 
 
 class Persona(PersonaBase):#para respuestas
