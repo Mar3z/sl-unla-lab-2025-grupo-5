@@ -111,7 +111,7 @@ def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
 
 # >>> Endpoints de reportes <<<
 @app.get("/reportes/turnos-por-fecha", response_model=list[schemas.Turno], tags=["Reportes"])
-def reporte_turnos_por_fecha(fecha: date = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
+def reporte_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
     turnos = crud.get_turnos_por_fecha(db, fecha)
     return turnos
 
@@ -121,10 +121,72 @@ def reporte_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
     return turnos
 
 @app.get("/reportes/turnos-por-persona", response_model=list[schemas.Turno], tags=["Reportes"])
-def reporte_turnos_por_persona(dni: str = Query(..., description="DNI de la persona (8 dígitos)"), db: Session = Depends(get_db)): 
+def reporte_turnos_por_persona(dni: str, db: Session = Depends(get_db)): 
     
     if not dni.isdigit() or len(dni) != 8:
         raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos numéricos")
 
     turnos = crud.get_turnos_por_persona_dni(db, dni)
     return turnos
+
+@app.get("/reportes/turnos-cancelados", tags=["Reportes"])
+def reporte_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(get_db)):
+    if min < 0:
+        raise HTTPException(status_code=400, detail="El mínimo no puede ser negativo")
+    
+    resultados = crud.get_personas_con_turnos_cancelados(db, min)
+    
+    # Formatear la respuesta
+    respuesta = []
+    for persona, cantidad_cancelados in resultados:
+        persona_dict = schemas.Persona.from_orm(persona).dict()
+        persona_dict["cantidad_cancelados"] = cantidad_cancelados
+        
+        # Obtener los turnos cancelados de esta persona
+        turnos_cancelados = crud.get_turnos_por_persona_dni(db, persona.dni)
+        turnos_cancelados = [t for t in turnos_cancelados if t.estado == "cancelado"]
+        
+        persona_dict["turnos_cancelados"] = [
+            {
+                "id": turno.id,
+                "fecha": turno.fecha,
+                "hora": turno.hora,
+                "estado": turno.estado
+            }
+            for turno in turnos_cancelados
+        ]
+        
+        respuesta.append(persona_dict)
+    
+    return respuesta
+
+@app.get("/reportes/turnos-confirmados", tags=["Reportes"])
+def reporte_turnos_confirmados_periodo(desde: date, hasta: date, pagina: int = 1, db: Session = Depends(get_db)):
+
+    if desde > hasta:
+        raise HTTPException(status_code=400, detail="La fecha 'desde' no puede ser mayor que 'hasta'")
+    
+    # Calcular skip para paginación
+    registros_por_pagina = 5
+    skip = (pagina - 1) * registros_por_pagina
+    
+    # Obtener datos paginados
+    turnos = crud.get_turnos_confirmados_periodo(db, desde, hasta, skip, registros_por_pagina)
+    total = crud.get_total_turnos_confirmados_periodo(db, desde, hasta)
+    total_paginas = (total + registros_por_pagina - 1) // registros_por_pagina
+    
+    return {
+        "turnos": turnos,
+        "paginacion": {
+            "pagina_actual": pagina,
+            "total_paginas": total_paginas,
+            "total_turnos": total,
+            "turnos_por_pagina": registros_por_pagina
+        }
+    }
+
+@app.get("/reportes/estado-personas", response_model=list[schemas.Persona], tags=["Reportes"])
+def reporte_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
+    """Obtiene personas habilitadas o inhabilitadas para sacar turnos"""
+    personas = crud.get_personas_por_estado(db, habilitada)
+    return personas
