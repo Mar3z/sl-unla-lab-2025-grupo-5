@@ -112,10 +112,19 @@ def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
 # >>> Endpoints de reportes <<<
 @app.get("/reportes/turnos-por-fecha", response_model=list[schemas.Turno], tags=["Reportes"])
 def reporte_turnos_por_fecha(fecha: date = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
-    try:
-        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Debe ser YYYY-MM-DD")
     turnos = crud.get_turnos_por_fecha(db, fecha)
     return turnos
 
+@app.get("/reportes/turnos-cancelados-por-mes", response_model=list[schemas.Turno], tags=["Reportes"])
+def reporte_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
+    turnos = crud.get_turnos_cancelados_mes_actual(db)
+    return turnos
+
+@app.get("/reportes/turnos-por-persona", response_model=list[schemas.Turno], tags=["Reportes"])
+def reporte_turnos_por_persona(dni: str = Query(..., description="DNI de la persona (8 dígitos)"), db: Session = Depends(get_db)): 
+    
+    if not dni.isdigit() or len(dni) != 8:
+        raise HTTPException(status_code=400, detail="El DNI debe tener 8 dígitos numéricos")
+
+    turnos = crud.get_turnos_por_persona_dni(db, dni)
+    return turnos

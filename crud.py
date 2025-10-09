@@ -260,3 +260,26 @@ def confirmar_turno(db: Session, turno_id: int):
 
 def get_turnos_por_fecha(db: Session, fecha: date):
     return db.query(models.Turno).filter(models.Turno.fecha == fecha).all()
+
+def get_turnos_cancelados_mes_actual(db: Session):
+    hoy = date.today()
+    inicio_mes = date(hoy.year, hoy.month, 1)
+    
+    if hoy.month == 12:
+        fin_mes = date(hoy.year + 1, 1, 1) - timedelta(days=1)
+    else:
+        fin_mes = date(hoy.year, hoy.month + 1, 1) - timedelta(days=1)
+    
+    return db.query(models.Turno).filter(
+        and_(
+            models.Turno.estado == "cancelado",
+            models.Turno.fecha >= inicio_mes,
+            models.Turno.fecha <= fin_mes
+        )
+    ).all()
+
+def get_turnos_por_persona_dni(db: Session, dni: str):
+    persona = db.query(models.Persona).filter(models.Persona.dni == dni).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    return db.query(models.Turno).filter(models.Turno.persona_id == persona.id).all()
