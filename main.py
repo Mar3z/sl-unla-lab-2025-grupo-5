@@ -5,6 +5,7 @@ from models.Turno import Turno as Turno
 from models.Persona import Persona as Persona
 from schemas import Persona as SchPersona
 from schemas import Turno as SchTurno
+from schemas import Reporte as SchReporte
 from crud import Persona as CrudPersona
 from crud import Turno as CrudTurno
 from crud import Reporte as CrudReporte
@@ -72,23 +73,8 @@ def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
     return CrudTurno.delete_turno(db, turno_id)
 
 @app.put("/turnos/{turno_id}", response_model=SchTurno.Turno, tags=["Turnos"])
-def update_turno(turno_id: int, turno: SchTurno.TurnoUpdate, db: Session = Depends(get_db)):
-    db_turno = db.query(models.Turno).filter(models.Turno.id == turno_id).first()
-    if not db_turno:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
-
-    update_data = turno.dict(exclude_unset=True)
-
-    #No permitir modificar el estado desde este endpoint
-    if "estado" in update_data:
-        update_data.pop("estado")
-
-    for key, value in update_data.items():
-        setattr(db_turno, key, value)
-
-    db.commit()
-    db.refresh(db_turno)
-    return db_turno
+def update_turno(turno_id: int, turno_update: SchTurno.TurnoUpdate, db: Session = Depends(get_db)):
+    return CrudTurno.update_turno(db, turno_id, turno_update)
 
 @app.get("/turnos-disponibles", tags=["Turnos"])
 def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"), db: Session = Depends(get_db)):
@@ -115,10 +101,15 @@ def reporte_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
     turnos = CrudReporte.get_turnos_por_fecha(db, fecha)
     return turnos
 
-@app.get("/reportes/turnos-cancelados-por-mes", response_model=list[SchTurno.Turno], tags=["Reportes"])
+@app.get("/reportes/turnos-cancelados-por-mes", response_model=SchReporte.CanceladosMesEnCurso, tags=["Reportes"])
 def reporte_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
-    turnos = CrudReporte.get_turnos_cancelados_mes_actual(db)
-    return turnos
+    turnos_cancelados = CrudReporte.get_turnos_cancelados_mes_actual(db)
+    response = SchReporte.CanceladosMesEnCurso(
+        anio=turnos_cancelados["anio"], 
+        mes=turnos_cancelados["mes"], 
+        cantidad=turnos_cancelados["cantidad"], 
+        turnos=turnos_cancelados["turnos"])
+    return response
 
 @app.get("/reportes/turnos-por-persona", response_model=list[SchTurno.Turno], tags=["Reportes"])
 def reporte_turnos_por_persona(dni: str, db: Session = Depends(get_db)): 

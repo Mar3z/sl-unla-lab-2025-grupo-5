@@ -5,6 +5,7 @@ from models.Turno import Turno as Turno
 from models.Persona import Persona as Persona
 from schemas import Persona as SchPersona
 from schemas import Turno as SchTurno
+from schemas import Reporte as SchReporte
 from fastapi import HTTPException
 import os
 from dotenv import load_dotenv
@@ -25,13 +26,36 @@ def get_turnos_cancelados_mes_actual(db: Session):
     else:
         fin_mes = date(hoy.year, hoy.month + 1, 1) - timedelta(days=1)
     
-    return db.query(Turno).filter(
+    turnos = db.query(Turno).filter(
         and_(
             Turno.estado == "cancelado",
             Turno.fecha >= inicio_mes,
             Turno.fecha <= fin_mes
         )
     ).all()
+
+    # Un diccionario para devolver el mes por el nombre
+    meses = {
+        1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+        5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+        9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+    }
+
+    turnos_cancelados = []
+    for t in turnos:
+        turnos_cancelados.append(SchReporte.TurnoCanceladoInfo(
+            id=t.id, 
+            persona_id=t.persona.id,
+            fecha=t.fecha,
+            hora=t.hora,
+            estado=t.estado))
+
+    return {
+        "anio": hoy.year,
+        "mes": meses[hoy.month],
+        "cantidad": len(turnos),
+        "turnos": turnos_cancelados
+    }
 
 def get_turnos_por_persona_dni(db: Session, dni: str):
     persona = db.query(Persona).filter(Persona.dni == dni).first()

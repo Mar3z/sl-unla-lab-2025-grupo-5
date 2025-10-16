@@ -93,6 +93,12 @@ def update_turno(db: Session, turno_id: int, turno: SchTurno.TurnoUpdate):
 
     update_data = turno.dict(exclude_unset=True)
 
+    if "hora" in update_data and isinstance(update_data["hora"], str):
+        try:
+            update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de hora inválido. Use HH:MM")
+
     # Verificar si se quiere agendar en una fecha que ya pasó
     if "fecha" in update_data:
         fecha_turno = turno.fecha
@@ -116,10 +122,17 @@ def update_turno(db: Session, turno_id: int, turno: SchTurno.TurnoUpdate):
                 status_code=400, 
                 detail="La nueva persona tiene 5 o más turnos cancelados en los últimos 6 meses"
             )
+
+    # Verificar si ese turno está disponible
+    if "hora" in update_data or "fecha" in update_data:
+        hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
+        existe_turno = db.query(Turno).filter(Turno.fecha == turno.fecha, Turno.hora == hora_turno, Turno.estado != "cancelado").first()
+        if existe_turno:
+            raise HTTPException(status_code=400, detail=f"Ya existe un turno el día {turno.fecha} a las {hora_turno}")
     
     # Convertir string de hora a objeto time si se proporciona
-    if "hora" in update_data:
-        update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()
+    """if "hora" in update_data:
+        update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()"""
 
     # Verificar si se cambia a un estado permitido por el sistema
     if "estado" in update_data:
