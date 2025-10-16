@@ -31,15 +31,3 @@ class Persona(Base):
             (today.month, today.day) <
             (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
         )
-
-
-class Turno(Base):
-    __tablename__ = "turnos"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    fecha = Column(Date, nullable=False)
-    hora = Column(Time, nullable=False)
-    estado = Column(String, default="pendiente")
-    persona_id = Column(Integer, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False)
-    
-    persona = relationship("Persona", back_populates="turnos")

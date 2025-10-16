@@ -30,25 +30,3 @@ class PersonaUpdate(BaseModel):
     telefono: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
     habilitado: Optional[bool] = None
-
-class TurnoBase(BaseModel):
-    fecha: date
-    hora: time
-    persona_id: int
-
-class TurnoCreate(TurnoBase):
-    hora: str
-
-class Turno(TurnoBase):
-    id: int
-    persona: Persona
-    estado: str = "pendiente"
-    
-    class Config:
-        from_attributes = True
-
-class TurnoUpdate(BaseModel):
-    persona_id: Optional[int] = None
-    fecha: Optional[date] = None
-    hora: Optional[str] = None
-    estado: Optional[str] = None
