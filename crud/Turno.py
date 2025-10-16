@@ -42,6 +42,12 @@ def create_turno(db: Session, turno: SchTurno.TurnoCreate):
     persona = db.query(Persona).filter(Persona.id == turno.persona_id).first()
     if not persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
+
+    # Verificar si ese turno está disponible
+    hora_turno = datetime.strptime(turno.hora, "%H:%M").time()
+    existe_turno = db.query(Turno).filter(Turno.fecha == turno.fecha, Turno.hora == hora_turno, Turno.estado != "cancelado").first()
+    if existe_turno:
+        raise HTTPException(status_code=400, detail=f"Ya existe un turno el día {turno.fecha} a las {hora_turno}")
     
     # Verificar regla de negocio: máximo 5 turnos cancelados en últimos 6 meses
     turnos_cancelados = get_turnos_cancelados_recientes(db, turno.persona_id)
