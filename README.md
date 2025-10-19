@@ -112,7 +112,7 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 ---------------------------------------------------------------------------------------------------
 
 ### Implementación de la parte D del trabajo práctico: gestión de estado de turno.
-Realizado por LourdesCrespo
+ - Realizado por LourdesCrespo - 
 
 ### Cambios realizados
 - Agregadas funciones `cancelar_turno` y `confirmar_turno` en `crud.py`.
@@ -130,8 +130,17 @@ Se realizaron pruebas en Postman verificando:
 - Confirmación correcta de turno pendiente.
 - Errores adecuados al cancelar/confirmar turnos ya cancelados o asistidos.
   
-  ----------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
 
+# GENERACIÓN DE REPORTES
+ - Realizado por Martín Barreto - 
 
+### Endpoints implementados
 
+1. **GET /reportes/turnos-por-fecha** → Trae todos los turnos de una fecha específica (La fecha se indica como query param en formato "YYYY-MM-DD")
+2. **GET /reportes/turnos-cancelados-por-mes** → Trae todos los turnos cancelados del mes actual
+3. **GET /reportes/turnos-por-persona** → Trae todos los turnos de una persona específica (La persona se indica mediante su DNI a través de una query param)
+4. **GET /reportes/turnos-cancelados** → Devuelve los usuarios con una cantidad determinada de turnos cancelados (La cantidad de turnos se indica por parámetro)
+5. **GET /reportes/turnos-confirmados** → Devuelve los turnos confirmados en un periodo de tiempo determinado (El periodo se indica por parámetro con la fecha de inicio y la fecha de fin)
+6. **GET /reportes/estado-personas** → Devuelve los usuarios según su estado si está habilitado o no(Se indica el estado por parámetro)
 
