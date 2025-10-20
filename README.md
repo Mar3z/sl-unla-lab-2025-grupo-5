@@ -7,7 +7,7 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 - Crespo Barreira Lourdes Noelia    @LourdesCrespo
 
 **HITO 1: Link al video en YouTube** https://youtu.be/LxFqV9-48NE
-**HITO 2: Link al video:**
+**HITO 2: Link al video:** https://youtu.be/s2PN_gFaJgA?si=z2l83-c8e8GxEfyz
 
 **Link al Drive con las postman collection** https://drive.google.com/drive/folders/1dolAP98gcWkMu7YS27ySt-flRty8snt6?usp=sharing
 
