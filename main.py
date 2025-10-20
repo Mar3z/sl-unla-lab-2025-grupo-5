@@ -96,7 +96,7 @@ def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
     return CrudTurno.confirmar_turno(db, turno_id)
 
 # >>> Endpoints de reportes <<<
-@app.get("/reportes/turnos-por-fecha", response_model=list[SchTurno.Turno], tags=["Reportes"])
+@app.get("/reportes/turnos-por-fecha", response_model=list[SchReporte909.TurnoInfo], tags=["Reportes"])
 def reporte_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
     turnos = CrudReporte.get_turnos_por_fecha(db, fecha)
     return turnos

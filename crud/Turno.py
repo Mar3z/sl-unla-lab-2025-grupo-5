@@ -129,10 +129,6 @@ def update_turno(db: Session, turno_id: int, turno: SchTurno.TurnoUpdate):
         existe_turno = db.query(Turno).filter(Turno.fecha == turno.fecha, Turno.hora == hora_turno, Turno.estado != "cancelado").first()
         if existe_turno:
             raise HTTPException(status_code=400, detail=f"Ya existe un turno el día {turno.fecha} a las {hora_turno}")
-    
-    # Convertir string de hora a objeto time si se proporciona
-    """if "hora" in update_data:
-        update_data["hora"] = datetime.strptime(update_data["hora"], "%H:%M").time()"""
 
     # Verificar si se cambia a un estado permitido por el sistema
     if "estado" in update_data:

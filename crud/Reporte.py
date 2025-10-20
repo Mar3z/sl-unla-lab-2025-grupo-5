@@ -15,7 +15,18 @@ load_dotenv() # Carga las variables de entorno
 # >>> REPORTES DE TURNOS <<<<
 
 def get_turnos_por_fecha(db: Session, fecha: date):
-    return db.query(Turno).filter(Turno.fecha == fecha).all()
+    turnos = db.query(Turno).filter(Turno.fecha == fecha).all()
+    turnos_formateados = []
+    for t in turnos:
+        turnos_formateados.append(SchReporte.TurnoInfo(
+            id = t.id,
+            fecha = t.fecha,
+            hora = t.hora,
+            nombre_persona = t.persona.nombre,
+            dni_persona = t.persona.dni,
+            estado = t.estado
+        ))
+    return turnos_formateados
 
 def get_turnos_cancelados_mes_actual(db: Session):
     hoy = date.today()
