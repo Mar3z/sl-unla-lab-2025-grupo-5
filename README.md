@@ -6,7 +6,9 @@ El trabajo pertenece al grupo 5, compuesto por los siguientes integrantes:
 - Brandan Fabrizio              @fabriziobrandan-cpu
 - Crespo Barreira Lourdes Noelia    @LourdesCrespo
 
-**Link al video en YouTube** https://youtu.be/LxFqV9-48NE
+**HITO 1: Link al video en YouTube** https://youtu.be/LxFqV9-48NE
+**HITO 2: Link al video:**
+
 **Link al Drive con las postman collection** https://drive.google.com/drive/folders/1dolAP98gcWkMu7YS27ySt-flRty8snt6?usp=sharing
 
 # Instrucciones para levantar el proyecto
