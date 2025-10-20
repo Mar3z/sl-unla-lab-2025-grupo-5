@@ -130,7 +130,7 @@ def reporte_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(g
     # Formatear la respuesta
     respuesta = []
     for persona, cantidad_cancelados in resultados:
-        persona_dict = SchPersona.from_orm(persona).dict()
+        persona_dict = SchPersona.Persona.from_orm(persona).dict()
         persona_dict["cantidad_cancelados"] = cantidad_cancelados
         
         # Obtener los turnos cancelados de esta persona
