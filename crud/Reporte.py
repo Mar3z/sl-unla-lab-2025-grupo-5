@@ -6,8 +6,10 @@ from models.Persona import Persona as Persona
 from schemas import Persona as SchPersona
 from schemas import Turno as SchTurno
 from schemas import Reporte as SchReporte
+import crud.Persona as CrudPersona
 from fastapi import HTTPException
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv() # Carga las variables de entorno
@@ -61,18 +63,25 @@ def get_turnos_cancelados_mes_actual(db: Session):
             hora=t.hora,
             estado=t.estado))
 
-    return {
-        "anio": hoy.year,
-        "mes": meses[hoy.month],
-        "cantidad": len(turnos),
-        "turnos": turnos_cancelados
-    }
+    return SchReporte.CanceladosMesEnCurso(
+        anio = hoy.year,
+        mes = meses[hoy.month],
+        cantidad = len(turnos),
+        turnos = turnos_cancelados
+    )
 
 def get_turnos_por_persona_dni(db: Session, dni: str):
     persona = db.query(Persona).filter(Persona.dni == dni).first()
     if not persona:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
-    return db.query(Turno).filter(Turno.persona_id == persona.id).all()
+
+    turnos = db.query(Turno).filter(Turno.persona_id == persona.id).all()
+
+    turnos_formateados=[]
+    for t in turnos:
+        turnos_formateados.append(SchReporte.TurnoInfoBasica(id=t.id, fecha=t.fecha, hora=t.hora, estado=t.estado))
+
+    return SchReporte.TurnosPorPersona(id_persona=persona.id, nombre=persona.nombre, turnos=turnos_formateados)
 
 def get_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
 
@@ -93,8 +102,25 @@ def get_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
     ).join(
         subquery, Persona.id == subquery.c.persona_id
     ).all()
+     
+    response = []
+    for persona, cant_cancelados in resultados:
+        turnos = [t for t in get_turnos_por_persona_dni(db, CrudPersona.get_persona(db, persona.id).dni) if t.estado == 'cancelado']   
+        turnos_formateados=[]
+        for t in turnos:
+                turnos_formateados.append(SchReporte.TurnoCanceladoInfoBasico(
+                    id=t.id,
+                    fecha=t.fecha, 
+                    hora=t.hora
+                ))
+        response.append(SchReporte.PersonasConTurnosCancelados(
+            id_usuario=persona.id,
+            nombre=CrudPersona.get_persona(db, persona.id).nombre,
+            cantidad_cancelados=cant_cancelados,
+            turnos_cancelados=turnos_formateados
+        ))
     
-    return resultados
+    return response
 
 def get_turnos_confirmados_periodo(db: Session, desde: date, hasta: date, skip: int = 0, limit: int = 5):
     """Obtiene turnos confirmados en un período con paginación"""
