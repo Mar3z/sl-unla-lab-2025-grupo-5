@@ -19,26 +19,31 @@ class TurnoInfoBasica(BaseModel):
     hora: time
     estado: str
 
-class TurnoCanceladoInfo(BaseModel):
+class TurnoCanceladoInfoBasico(BaseModel):
     id: int
-    persona_id: int
     fecha: date
     hora: time
+
+class TurnoCanceladoInfo(BaseModel):
+    persona_id: int
+    nombre: str
+    turnos: List[TurnoCanceladoInfoBasico]
+
+class TurnosSinFecha(BaseModel):
+    id: int
+    hora: time
+    persona_nombre: str
     estado: str
 
-    class Config:
-        from_attributes = True
+class TurnosPorFecha(BaseModel):
+    fecha: date
+    turnos: List[TurnosSinFecha]
 
 class CanceladosMesEnCurso(BaseModel):
     anio: int
     mes: str
     cantidad: int
     turnos: List[TurnoCanceladoInfo]
-
-class TurnoCanceladoInfoBasico(BaseModel):
-    id: int
-    fecha: date
-    hora: time
 
 class PersonasConTurnosCancelados(BaseModel):
     id_usuario: int
