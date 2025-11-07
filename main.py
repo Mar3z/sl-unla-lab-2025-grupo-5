@@ -9,6 +9,7 @@ from schemas import Reporte as SchReporte
 from crud import Persona as CrudPersona
 from crud import Turno as CrudTurno
 from crud import Reporte as CrudReporte
+from crud import Reporte_PDF as CrudReporte_PDF
 from datetime import date, datetime, time, timedelta
 from sqlalchemy.exc import IntegrityError
 from typing import List
@@ -149,3 +150,11 @@ def reporte_personas_por_estado(habilitada: bool, db: Session = Depends(get_db))
     """Obtiene personas habilitadas o inhabilitadas para sacar turnos"""
     personas = CrudReporte.get_personas_por_estado(db, habilitada)
     return personas
+
+
+
+# >>> Endpoints de reportes en PDF <<< (PARTE F)
+
+@app.get("/reportes/pdf/turnos-por-fecha", tags=["Reportes PDF"])
+def endpoint_pdf_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
+    return CrudReporte_PDF.generar_pdf_turnos_por_fecha(fecha,db)
