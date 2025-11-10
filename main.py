@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends,HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database import SessionLocal,engine,Base, get_db  #Me aseguro de que exista database.py con SessionLocal
 from models.Turno import Turno as Turno
@@ -166,3 +167,9 @@ def endpoint_pdf_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
 def endpoint_pdf_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
     """Genera un PDF con todos los turnos cancelados del mes actual, agrupados por persona."""
     return CrudReporte_PDF.generar_pdf_turnos_cancelados_mes_actual(db)
+
+@app.get("/reportes/pdf/turnos-por-persona", response_class=FileResponse, tags=["Reportes PDF"])
+def endpoint_pdf_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
+    """Genera un PDF con todos los turnos de una persona (por DNI)."""
+    return CrudReporte_PDF.generar_pdf_turnos_por_persona(dni, db)
+
