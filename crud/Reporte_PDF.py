@@ -477,3 +477,134 @@ def generar_pdf_personas_con_turnos_cancelados(db: Session, min_cancelados: int 
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
+
+
+def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
+    """
+    Genera un PDF con los turnos confirmados entre dos fechas.
+    """
+
+    try:
+        # 1️⃣ Obtener los turnos confirmados y total
+        turnos = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, 0, 1000)
+        total = CrudReporte.get_total_turnos_confirmados_periodo(db, desde, hasta)
+
+        # 2️⃣ Crear documento PDF
+        doc = Document()
+        page = Page()
+        doc.add_page(page)
+        layout = SingleColumnLayout(page)
+
+        # --- Encabezado ---
+        layout.add(
+            Paragraph(
+                "SL - UNLA LAB 2025 - GRUPO 5",
+                font_size=16,
+                font_color=HexColor("#1E88E5"),
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Turnos confirmados del {desde.strftime('%d/%m/%Y')} al {hasta.strftime('%d/%m/%Y')}",
+                font_size=14,
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                font_size=10
+            )
+        )
+        layout.add(Paragraph(" "))
+
+        # 3️⃣ Validar si hay turnos
+        if not turnos or len(turnos) == 0:
+            layout.add(
+                Paragraph(
+                    "⚠ No hay turnos confirmados en el período seleccionado.",
+                    font_color=HexColor("#D32F2F"),
+                    font_size=12,
+                    text_alignment=Alignment.CENTERED
+                )
+            )
+        else:
+            # 4️⃣ Crear tabla con encabezados
+            col_count = 4
+            ancho_total = Decimal(520)
+            col_widths = [ancho_total / Decimal(col_count)] * col_count
+
+            table = FixedColumnWidthTable(
+                number_of_rows=len(turnos) + 1,
+                number_of_columns=col_count,
+                column_widths=col_widths
+            )
+
+            # --- Encabezados ---
+            encabezados = ["ID Turno", "Fecha", "Hora", "Persona"]
+            for header in encabezados:
+                table.add(
+                    TableCell(
+                        Paragraph(
+                            header,
+                            font_color=X11Color("White"),
+                            font_size=12,
+                            text_alignment=Alignment.CENTERED
+                        ),
+                        background_color=HexColor("#1976D2")
+                    )
+                )
+
+            # --- Filas ---
+            for t in turnos:
+                table.add(TableCell(Paragraph(str(t.id), text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(str(t.fecha), text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(str(t.hora), text_alignment=Alignment.CENTERED)))
+
+                # Algunos registros pueden no tener relación a persona (precaución)
+                persona_nombre = t.persona.nombre if hasattr(t, "persona") and t.persona else "Sin asignar"
+                table.add(TableCell(Paragraph(persona_nombre, text_alignment=Alignment.CENTERED)))
+
+            layout.add(table)
+
+            # --- Total ---
+            layout.add(Paragraph(" "))
+            layout.add(
+                Paragraph(
+                    f"Total de turnos confirmados: {total}",
+                    font_size=11,
+                    font_color=HexColor("#0D47A1"),
+                    text_alignment=Alignment.RIGHT
+                )
+            )
+
+        # --- Pie de página ---
+        layout.add(Paragraph(" "))
+        layout.add(
+            Paragraph(
+                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
+                font_size=9,
+                font_color=HexColor("#424242"),
+                text_alignment=Alignment.RIGHT
+            )
+        )
+
+        # 5️⃣ Guardar PDF
+        carpeta_destino = "reportes_pdf"
+        os.makedirs(carpeta_destino, exist_ok=True)
+        nombre_archivo = f"turnos_confirmados_{desde}_{hasta}.pdf"
+        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
+
+        with open(ruta_completa, "wb") as f:
+            PDF.dumps(f, doc)
+
+        # 6️⃣ Retornar el archivo
+        return FileResponse(
+            path=ruta_completa,
+            media_type="application/pdf",
+            filename=nombre_archivo
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")

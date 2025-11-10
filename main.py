@@ -89,11 +89,11 @@ def turnos_disponibles(fecha: str = Query(..., description="Fecha en formato YYY
 
 # >>> Endpoints de gestion de estado de turno <<< (PARTE D)
 
-@app.put("/turnos/{turno_id}/cancelar", response_model=SchTurno.Turno)
+@app.put("/turnos/{turno_id}/cancelar", response_model=SchTurno.Turno, tags=["Turnos"])
 def cancelar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
     return CrudTurno.cancelar_turno(db, turno_id)
 
-@app.put("/turnos/{turno_id}/confirmar", response_model=SchTurno.Turno)
+@app.put("/turnos/{turno_id}/confirmar", response_model=SchTurno.Turno, tags=["Turnos"])
 def confirmar_turno_endpoint(turno_id: int, db: Session = Depends(get_db)):
     return CrudTurno.confirmar_turno(db, turno_id)
 
@@ -173,7 +173,11 @@ def endpoint_pdf_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
     """Genera un PDF con todos los turnos de una persona (por DNI)."""
     return CrudReporte_PDF.generar_pdf_turnos_por_persona(dni, db)
 
-@app.get("/reportes/pdf/turnos-cancelados", response_class=FileResponse, tags=["Reportes"])
+@app.get("/reportes/pdf/turnos-cancelados", response_class=FileResponse, tags=["Reportes PDF"])
 def endpoint_pdf_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(get_db)):
     """Genera un PDF con personas que tienen al menos N turnos cancelados."""
     return CrudReporte_PDF.generar_pdf_personas_con_turnos_cancelados(db, min)
+
+@app.get("/reportes/pdf/turnos-confirmados", tags=["Reportes PDF"])
+def endpoint_pdf_turnos_confirmados(desde: date, hasta: date, db: Session = Depends(get_db)):
+    return CrudReporte_PDF.generar_pdf_turnos_confirmados_periodo(db, desde, hasta)
