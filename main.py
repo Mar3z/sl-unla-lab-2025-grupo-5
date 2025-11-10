@@ -155,6 +155,14 @@ def reporte_personas_por_estado(habilitada: bool, db: Session = Depends(get_db))
 
 # >>> Endpoints de reportes en PDF <<< (PARTE F)
 
+# Reporte de turnos por fecha
 @app.get("/reportes/pdf/turnos-por-fecha", tags=["Reportes PDF"])
 def endpoint_pdf_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
     return CrudReporte_PDF.generar_pdf_turnos_por_fecha(fecha,db)
+
+# Reporte de turnos cancelados del mes actual
+
+@app.get("/reportes/pdf/turnos-cancelados-por-mes", tags=["Reportes PDF"])
+def endpoint_pdf_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
+    """Genera un PDF con todos los turnos cancelados del mes actual, agrupados por persona."""
+    return CrudReporte_PDF.generar_pdf_turnos_cancelados_mes_actual(db)
