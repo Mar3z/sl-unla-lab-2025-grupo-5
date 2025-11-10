@@ -181,3 +181,7 @@ def endpoint_pdf_personas_con_turnos_cancelados(min: int = 5, db: Session = Depe
 @app.get("/reportes/pdf/turnos-confirmados", tags=["Reportes PDF"])
 def endpoint_pdf_turnos_confirmados(desde: date, hasta: date, db: Session = Depends(get_db)):
     return CrudReporte_PDF.generar_pdf_turnos_confirmados_periodo(db, desde, hasta)
+
+@app.get("/reportes/pdf/estado-personas", tags=["Reportes PDF"])
+def endpoint_pdf_estado_personas(habilitada: bool, db: Session = Depends(get_db)):
+    return CrudReporte_PDF.generar_pdf_estado_personas(db, habilitada)

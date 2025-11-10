@@ -485,11 +485,11 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
     """
 
     try:
-        # 1️⃣ Obtener los turnos confirmados y total
+        # Obtener los turnos confirmados y total
         turnos = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, 0, 1000)
         total = CrudReporte.get_total_turnos_confirmados_periodo(db, desde, hasta)
 
-        # 2️⃣ Crear documento PDF
+        # Crear documento PDF
         doc = Document()
         page = Page()
         doc.add_page(page)
@@ -519,7 +519,7 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
         )
         layout.add(Paragraph(" "))
 
-        # 3️⃣ Validar si hay turnos
+        # Validar si hay turnos
         if not turnos or len(turnos) == 0:
             layout.add(
                 Paragraph(
@@ -530,7 +530,7 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
                 )
             )
         else:
-            # 4️⃣ Crear tabla con encabezados
+            # Crear tabla con encabezados
             col_count = 4
             ancho_total = Decimal(520)
             col_widths = [ancho_total / Decimal(col_count)] * col_count
@@ -590,7 +590,7 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
             )
         )
 
-        # 5️⃣ Guardar PDF
+        # Guardar PDF
         carpeta_destino = "reportes_pdf"
         os.makedirs(carpeta_destino, exist_ok=True)
         nombre_archivo = f"turnos_confirmados_{desde}_{hasta}.pdf"
@@ -599,7 +599,129 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
         with open(ruta_completa, "wb") as f:
             PDF.dumps(f, doc)
 
-        # 6️⃣ Retornar el archivo
+        # Retornar el archivo
+        return FileResponse(
+            path=ruta_completa,
+            media_type="application/pdf",
+            filename=nombre_archivo
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
+    
+def generar_pdf_estado_personas(db: Session, habilitada: bool):
+    """Genera un PDF con la lista de personas habilitadas o inhabilitadas."""
+
+    try:
+        # Obtener datos desde el CRUD
+        personas = CrudReporte.get_personas_por_estado(db, habilitada)
+        estado_texto = "HABILITADAS" if habilitada else "INHABILITADAS"
+
+        # Crear documento PDF
+        doc = Document()
+        page = Page()
+        doc.add_page(page)
+        layout = SingleColumnLayout(page)
+
+        # --- Encabezado ---
+        layout.add(
+            Paragraph(
+                "SL - UNLA LAB 2025 - GRUPO 5",
+                font_size=16,
+                font_color=HexColor("#1E88E5"),
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Reporte de personas {estado_texto}",
+                font_size=14,
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                font_size=10
+            )
+        )
+        layout.add(Paragraph(" "))
+
+        # --- Si no hay resultados ---
+        if not personas or len(personas) == 0:
+            layout.add(
+                Paragraph(
+                    f"No se encontraron personas {estado_texto.lower()}.",
+                    font_color=HexColor("#D32F2F"),
+                    text_alignment=Alignment.CENTERED
+                )
+            )
+        else:
+            # Crear tabla
+            col_count = 3
+            ancho_total = Decimal(520)
+            col_widths = [ancho_total / Decimal(col_count)] * col_count
+            table = FixedColumnWidthTable(
+                number_of_rows=len(personas) + 1,
+                number_of_columns=col_count,
+                column_widths=col_widths
+            )
+
+            # --- Encabezados ---
+            encabezados = ["ID", "Nombre", "DNI"]
+            for header in encabezados:
+                table.add(
+                    TableCell(
+                        Paragraph(
+                            header,
+                            font_color=X11Color("White"),
+                            font_size=12,
+                            text_alignment=Alignment.CENTERED
+                        ),
+                        background_color=HexColor("#1976D2")
+                    )
+                )
+
+            # --- Filas (centradas) ---
+            for persona in personas:
+                table.add(TableCell(Paragraph(str(persona.id), text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(persona.nombre, text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(persona.dni, text_alignment=Alignment.CENTERED)))
+
+            layout.add(table)
+
+            # --- Total ---
+            layout.add(Paragraph(" "))
+            layout.add(
+                Paragraph(
+                    f"Total de personas {estado_texto.lower()}: {len(personas)}",
+                    font_size=11,
+                    font_color=HexColor("#0D47A1"),
+                    text_alignment=Alignment.RIGHT
+                )
+            )
+
+        # --- Pie de página ---
+        layout.add(Paragraph(" "))
+        layout.add(
+            Paragraph(
+                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
+                font_size=9,
+                font_color=HexColor("#424242"),
+                text_alignment=Alignment.RIGHT
+            )
+        )
+
+        # Guardar PDF
+        carpeta_destino = "reportes_pdf"
+        os.makedirs(carpeta_destino, exist_ok=True)
+        nombre_archivo = f"reporte_personas_{estado_texto.lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
+
+        with open(ruta_completa, "wb") as f:
+            PDF.dumps(f, doc)
+
+        # Retornar el archivo
         return FileResponse(
             path=ruta_completa,
             media_type="application/pdf",
