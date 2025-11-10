@@ -173,3 +173,7 @@ def endpoint_pdf_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
     """Genera un PDF con todos los turnos de una persona (por DNI)."""
     return CrudReporte_PDF.generar_pdf_turnos_por_persona(dni, db)
 
+@app.get("/reportes/pdf/turnos-cancelados", response_class=FileResponse, tags=["Reportes"])
+def endpoint_pdf_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(get_db)):
+    """Genera un PDF con personas que tienen al menos N turnos cancelados."""
+    return CrudReporte_PDF.generar_pdf_personas_con_turnos_cancelados(db, min)

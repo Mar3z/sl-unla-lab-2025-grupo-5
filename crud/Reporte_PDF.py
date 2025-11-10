@@ -355,3 +355,125 @@ def generar_pdf_turnos_por_persona(dni: str, db):
     except Exception as e:
         # Cualquier otro error inesperado
         raise HTTPException(status_code=500, detail=f"Error al generar el reporte PDF: {str(e)}")
+    
+
+def generar_pdf_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
+    """
+    Genera un PDF con las personas que tienen al menos 'min_cancelados' turnos cancelados.
+    """
+    try:
+        # Obtener datos desde el CRUD normal
+        personas = CrudReporte.get_personas_con_turnos_cancelados(db, min_cancelados)
+
+        # Crear documento PDF
+        doc = Document()
+        page = Page()
+        doc.add_page(page)
+        layout = SingleColumnLayout(page)
+
+        # --- Encabezado ---
+        layout.add(
+            Paragraph(
+                "SL - UNLA LAB 2025 - GRUPO 5",
+                font_size=16,
+                font_color=HexColor("#1E88E5"),
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Personas con al menos {min_cancelados} turnos cancelados",
+                font_size=14,
+                text_alignment=Alignment.CENTERED
+            )
+        )
+        layout.add(
+            Paragraph(
+                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                font_size=10
+            )
+        )
+        layout.add(Paragraph(" "))
+
+        # 3️⃣ Validar si hay datos
+        if not personas or len(personas) == 0:
+            layout.add(
+                Paragraph(
+                    "⚠ No se encontraron personas con turnos cancelados en este período.",
+                    font_color=HexColor("#D32F2F"),
+                    font_size=12,
+                    text_alignment=Alignment.CENTERED
+                )
+            )
+        else:
+            # Crear tabla con encabezados
+            col_count = 4
+            ancho_total = Decimal(520)
+            col_widths = [ancho_total / Decimal(col_count)] * col_count
+
+            if not col_widths or col_count == 0:
+                raise HTTPException(status_code=500, detail="Error interno: tabla vacía o mal configurada")
+
+            table = FixedColumnWidthTable(
+                number_of_rows=len(personas) + 1,
+                number_of_columns=col_count,
+                column_widths=col_widths
+            )
+
+            # --- Encabezados ---
+            encabezados = ["ID Persona", "Nombre", "Cancelados", "Turnos (Fecha y Hora)"]
+            for header in encabezados:
+                table.add(
+                    TableCell(
+                        Paragraph(
+                            header,
+                            font_color=X11Color("White"),
+                            font_size=12,
+                            text_alignment=Alignment.CENTERED
+                        ),
+                        background_color=HexColor("#1976D2")
+                    )
+                )
+
+            # --- Filas ---
+            for persona in personas:
+                turnos_texto = ", ".join(
+                    [f"{t.fecha} {t.hora}" for t in persona.turnos_cancelados]
+                ) if persona.turnos_cancelados else "-"
+
+                table.add(TableCell(Paragraph(str(persona.id_usuario), text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(persona.nombre, text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(str(persona.cantidad_cancelados), text_alignment=Alignment.CENTERED)))
+                table.add(TableCell(Paragraph(turnos_texto, text_alignment=Alignment.CENTERED)))
+
+            layout.add(table)
+
+        # --- Pie de página ---
+        layout.add(Paragraph(" "))
+        layout.add(
+            Paragraph(
+                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
+                font_size=9,
+                font_color=HexColor("#424242"),
+                text_alignment=Alignment.RIGHT
+            )
+        )
+
+        # Guardar PDF
+        carpeta_destino = "reportes_pdf"
+        os.makedirs(carpeta_destino, exist_ok=True)
+        nombre_archivo = f"personas_con_turnos_cancelados_min{min_cancelados}.pdf"
+        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
+
+        with open(ruta_completa, "wb") as f:
+            PDF.dumps(f, doc)
+
+        # Retornar archivo PDF
+        return FileResponse(
+            path=ruta_completa,
+            media_type="application/pdf",
+            filename=nombre_archivo
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
