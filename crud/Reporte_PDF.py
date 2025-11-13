@@ -8,725 +8,237 @@ from borb.pdf.canvas.layout.table.table import TableCell
 from borb.pdf.canvas.layout.layout_element import Alignment
 from borb.pdf.canvas.color.color import HexColor, X11Color
 from sqlalchemy.orm import Session
-from datetime import date, datetime
+from datetime import datetime, date
+from decimal import Decimal
 import crud.Reporte as CrudReporte
 import os
-from decimal import Decimal
 
+# ──────────────────────────────────────────────
+# 🔧 FUNCIONES AUXILIARES
+# ──────────────────────────────────────────────
 
-# GENERAR REPORTE PDF DE TURNOS POR FECHA
-def generar_pdf_turnos_por_fecha(fecha: date, db: Session):
-    try:
-        reporte = CrudReporte.get_turnos_por_fecha(db, fecha)
-        print(f"Generando PDF de turnos para la fecha {fecha}...")
-
-        doc = Document()
-        page = Page()
-        doc.add_page(page)
-        layout = SingleColumnLayout(page)
-
-        # Encabezado
-        layout.add(
-            Paragraph("SL - UNLA LAB 2025 - GRUPO 5", font_size=16,
-                      font_color=HexColor("#1E88E5"), text_alignment=Alignment.CENTERED)
-        )
-        layout.add(
-            Paragraph(f"Reporte de turnos del día {fecha.strftime('%d/%m/%Y')}",
-                      font_size=14, text_alignment=Alignment.CENTERED)
-        )
-        layout.add(Paragraph(
-            f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            font_size=10, text_alignment=Alignment.CENTERED
-        ))
-        layout.add(Paragraph(" "))
-
-        if not reporte.turnos:
-            layout.add(Paragraph("No hay turnos registrados en esta fecha."))
-        else:
-            table = FixedColumnWidthTable(
-                number_of_rows=len(reporte.turnos) + 1, number_of_columns=4
-            )
-
-            # Encabezados
-            for header in ["ID", "Hora", "Persona", "Estado"]:
-                table.add(
-                    TableCell(
-                        Paragraph(header, font_color=X11Color("White"),
-                                  font_size=12, text_alignment=Alignment.CENTERED),
-                        background_color=HexColor("#1976D2")
-                    )
-                )
-
-            # Filas con color alternado
-            for i, turno in enumerate(reporte.turnos):
-                bg_color = HexColor("#E3F2FD") if i % 2 == 0 else HexColor("#FFFFFF")
-
-                table.add(TableCell(Paragraph(str(turno.id),
-                                              text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(str(turno.hora),
-                                              text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(turno.persona_nombre,
-                                              text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(turno.estado.capitalize(),
-                                              text_alignment=Alignment.CENTERED), background_color=bg_color))
-
-            layout.add(table)
-
-        # Pie de página
-        layout.add(Paragraph(" "))
-        layout.add(Paragraph("Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                             font_size=9, font_color=HexColor("#424242"),
-                             text_alignment=Alignment.RIGHT))
-
-        # Guardar PDF
-        carpeta_destino = "reportes_pdf"
-        os.makedirs(carpeta_destino, exist_ok=True)
-        nombre_archivo = f"reporte_turnos_{fecha}.pdf"
-        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
-
-        with open(ruta_completa, "wb") as f:
-            PDF.dumps(f, doc)
-
-        print(f"PDF generado correctamente: {ruta_completa}")
-
-        return FileResponse(path=ruta_completa, media_type="application/pdf", filename=nombre_archivo)
-
-    except Exception as e:
-        print("ERROR en generar_pdf_turnos_por_fecha:", e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-def generar_pdf_turnos_cancelados_mes_actual(db):
-    #Genera un PDF con los turnos cancelados del mes actual, agrupados por persona.
-
-    reporte = CrudReporte.get_turnos_cancelados_mes_actual(db)
-
-    # Aseguramos que la estructura sea correcta
-    if not hasattr(reporte, "turnos") or not reporte.turnos:
-        reporte.turnos = []
-
+def _crear_doc_encabezado(titulo: str, subtitulo: str = ""):
+    """Crea un documento PDF con el encabezado estándar."""
     doc = Document()
     page = Page()
     doc.add_page(page)
     layout = SingleColumnLayout(page)
 
-    # --- Encabezado ---
-    layout.add(
-        Paragraph(
-            "SL - UNLA LAB 2025 - GRUPO 5",
-            font_size=16,
-            font_color=HexColor("#1E88E5"),
-            text_alignment=Alignment.CENTERED
-        )
-    )
-    layout.add(
-        Paragraph(
-            f"Turnos cancelados - {reporte.mes.capitalize()} {reporte.anio}",
-            font_size=14,
-            text_alignment=Alignment.CENTERED
-        )
-    )
-    layout.add(
-        Paragraph(
-            f"Total de turnos cancelados: {reporte.cantidad}",
-            font_size=11,
-            text_alignment=Alignment.CENTERED
-        )
-    )
-    layout.add(
-        Paragraph(
-            f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-            font_size=9,
-            text_alignment=Alignment.CENTERED
-        )
-    )
+    layout.add(Paragraph("SL - UNLA LAB 2025 - GRUPO 5",
+                         font_size=16, font_color=HexColor("#1E88E5"),
+                         text_alignment=Alignment.CENTERED))
+    layout.add(Paragraph(titulo, font_size=14, text_alignment=Alignment.CENTERED))
+    if subtitulo:
+        layout.add(Paragraph(subtitulo, font_size=11, text_alignment=Alignment.CENTERED))
+    layout.add(Paragraph(f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                         font_size=9, text_alignment=Alignment.CENTERED))
     layout.add(Paragraph(" "))
+    return doc, layout
 
-    # --- Si no hay datos ---
-    filas_totales = sum(len(p.turnos) for p in reporte.turnos if hasattr(p, "turnos"))
-    if filas_totales == 0:
-        layout.add(Paragraph("No se registraron turnos cancelados en este mes."))
-    else:
-        # Crear tabla solo si hay filas válidas
-        ancho_total = Decimal(520)
-        col_count = 3
-        col_widths = [ancho_total / Decimal(col_count)] * col_count
 
-        # Número de filas = encabezado + filas de datos
-        total_rows = filas_totales + 1
+def _crear_tabla(encabezados: list[str], filas: list[list[str]]):
+    """Crea una tabla con estilo y filas alternadas."""
+    if not encabezados:
+        return Paragraph("⚠ No hay datos para mostrar.", font_color=HexColor("#D32F2F"))
 
-        table = FixedColumnWidthTable(
-            number_of_rows=total_rows,
-            number_of_columns=col_count,
-            column_widths=col_widths
+    col_count = len(encabezados)
+    ancho_total = Decimal(520)
+    col_widths = [ancho_total / Decimal(col_count)] * col_count
+    table = FixedColumnWidthTable(len(filas) + 1, col_count, col_widths)
+
+    # Encabezados
+    for header in encabezados:
+        table.add(TableCell(
+            Paragraph(header, font_color=X11Color("White"), font_size=12,
+                      text_alignment=Alignment.CENTERED),
+            background_color=HexColor("#1976D2"))
         )
 
-        # --- Encabezados ---
-        for header in ["Persona", "Fecha", "Hora"]:
-            table.add(
-                TableCell(
-                    Paragraph(
-                        header,
-                        font_color=X11Color("White"),
-                        font_size=12,
-                        text_alignment=Alignment.CENTERED
-                    ),
-                    background_color=HexColor("#1976D2")
-                )
-            )
+    # Filas
+    for i, fila in enumerate(filas):
+        bg = HexColor("#E3F2FD") if i % 2 == 0 else HexColor("#FFFFFF")
+        for celda in fila:
+            table.add(TableCell(Paragraph(str(celda), text_alignment=Alignment.CENTERED),
+                                background_color=bg))
+    return table
 
-        # --- Agregar filas de datos ---
-        fila = 0
-        for persona in reporte.turnos:
-            if not hasattr(persona, "turnos") or not persona.turnos:
-                continue
-            for turno in persona.turnos:
-                bg_color = HexColor("#E3F2FD") if fila % 2 == 0 else HexColor("#FFFFFF")
-                table.add(
-                    TableCell(
-                        Paragraph(persona.nombre, text_alignment=Alignment.CENTERED),
-                        background_color=bg_color
-                    )
-                )
-                table.add(
-                    TableCell(
-                        Paragraph(str(turno.fecha), text_alignment=Alignment.CENTERED),
-                        background_color=bg_color
-                    )
-                )
-                table.add(
-                    TableCell(
-                        Paragraph(str(turno.hora), text_alignment=Alignment.CENTERED),
-                        background_color=bg_color
-                    )
-                )
-                fila += 1
 
-        layout.add(table)
-
-    # --- Pie de página ---
+def _pie_de_pagina(layout):
+    """Agrega el pie de página común."""
     layout.add(Paragraph(" "))
-    layout.add(
-        Paragraph(
-            "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-            font_size=9,
-            font_color=HexColor("#424242"),
-            text_alignment=Alignment.RIGHT
-        )
-    )
+    layout.add(Paragraph("Sistema de Gestión de Turnos - SL UNLA LAB 2025",
+                         font_size=9, font_color=HexColor("#424242"),
+                         text_alignment=Alignment.RIGHT))
 
-    # --- Guardar PDF ---
-    carpeta_destino = "reportes_pdf"
-    os.makedirs(carpeta_destino, exist_ok=True)
-    nombre_archivo = f"turnos_cancelados_{reporte.mes}_{reporte.anio}.pdf"
-    ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
 
-    with open(ruta_completa, "wb") as f:
+def _guardar_y_retornar_pdf(doc: Document, nombre: str):
+    """Guarda el PDF generado y devuelve el archivo listo para descargar."""
+    carpeta = "reportes_pdf"
+    os.makedirs(carpeta, exist_ok=True)
+    ruta = os.path.join(carpeta, nombre)
+    with open(ruta, "wb") as f:
         PDF.dumps(f, doc)
+    return FileResponse(path=ruta, media_type="application/pdf", filename=nombre)
 
-    return FileResponse(
-        path=ruta_completa,
-        media_type="application/pdf",
-        filename=nombre_archivo
-    )
+# ──────────────────────────────────────────────
+# 📄 REPORTES PDF
+# ──────────────────────────────────────────────
 
-
-
-def generar_pdf_turnos_por_persona(dni: str, db):
-    """
-    Genera un PDF con todos los turnos de una persona según su DNI.
-    Maneja internamente errores si no existe la persona o si no tiene turnos.
-    """
-
+def generar_pdf_turnos_por_fecha(fecha: date, db: Session):
+    """PDF con los turnos registrados en una fecha específica."""
     try:
-        # Obtener los datos desde el CRUD
+        reporte = CrudReporte.get_turnos_por_fecha(db, fecha)
+        doc, layout = _crear_doc_encabezado(f"Turnos del día {fecha.strftime('%d/%m/%Y')}")
+
+        if not reporte.turnos:
+            layout.add(Paragraph("No hay turnos registrados en esta fecha."))
+        else:
+            filas = [[t.id, t.hora, t.persona_nombre, t.estado.capitalize()] for t in reporte.turnos]
+            layout.add(_crear_tabla(["ID", "Hora", "Persona", "Estado"], filas))
+
+        _pie_de_pagina(layout)
+        return _guardar_y_retornar_pdf(doc, f"turnos_fecha_{fecha}.pdf")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
+
+
+def generar_pdf_turnos_cancelados_mes_actual(db: Session):
+    """PDF con los turnos cancelados del mes actual."""
+    try:
+        reporte = CrudReporte.get_turnos_cancelados_mes_actual(db)
+        doc, layout = _crear_doc_encabezado(
+            f"Turnos cancelados - {reporte.mes.capitalize()} {reporte.anio}",
+            f"Total cancelados: {reporte.cantidad}"
+        )
+
+        filas = [
+            [persona.nombre, t.fecha, t.hora]
+            for persona in getattr(reporte, "turnos", [])
+            for t in getattr(persona, "turnos", [])
+        ]
+
+        if not filas:
+            layout.add(Paragraph("No se registraron turnos cancelados en este mes."))
+        else:
+            layout.add(_crear_tabla(["Persona", "Fecha", "Hora"], filas))
+
+        _pie_de_pagina(layout)
+        return _guardar_y_retornar_pdf(doc, f"turnos_cancelados_{reporte.mes}_{reporte.anio}.pdf")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
+
+
+def generar_pdf_turnos_por_persona(dni: str, db: Session):
+    """PDF con los turnos de una persona según su DNI."""
+    try:
         reporte = CrudReporte.get_turnos_por_persona_dni(db, dni)
-
         if not reporte:
-            raise HTTPException(status_code=404, detail=f"No se encontró una persona con DNI {dni}")
+            raise HTTPException(status_code=404, detail=f"No se encontró persona con DNI {dni}")
 
-        if not hasattr(reporte, "turnos") or reporte.turnos is None:
-            raise HTTPException(status_code=404, detail=f"No se pudieron obtener los turnos de la persona con DNI {dni}")
+        doc, layout = _crear_doc_encabezado(
+            f"Turnos de {reporte.nombre} (DNI {dni})",
+            f"Total de turnos: {len(reporte.turnos)}"
+        )
 
-        # Crear documento PDF
-        doc = Document()
-        page = Page()
-        doc.add_page(page)
-        layout = SingleColumnLayout(page)
-
-        # --- Encabezado ---
-        layout.add(
-            Paragraph(
-                "SL - UNLA LAB 2025 - GRUPO 5",
-                font_size=16,
-                font_color=HexColor("#1E88E5"),
-                text_alignment=Alignment.CENTERED,
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Turnos de {reporte.nombre} (DNI {dni})",
-                font_size=14,
-                text_alignment=Alignment.CENTERED,
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Cantidad total de turnos: {len(reporte.turnos)}",
-                font_size=11,
-                text_alignment=Alignment.CENTERED,
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                font_size=9,
-                text_alignment=Alignment.CENTERED,
-            )
-        )
-        layout.add(Paragraph(" "))
-
-        # --- Si no tiene turnos ---
         if not reporte.turnos:
             layout.add(Paragraph("La persona no tiene turnos registrados."))
         else:
-            # Crear tabla con encabezados
-            col_count = 4
-            ancho_total = Decimal(520)
-            col_widths = [ancho_total / Decimal(col_count)] * col_count
+            filas = [[t.id, t.fecha, t.hora, t.estado.capitalize()] for t in reporte.turnos]
+            layout.add(_crear_tabla(["ID", "Fecha", "Hora", "Estado"], filas))
 
-            table = FixedColumnWidthTable(
-                number_of_rows=len(reporte.turnos) + 1,
-                number_of_columns=col_count,
-                column_widths=col_widths
-            )
+        _pie_de_pagina(layout)
+        return _guardar_y_retornar_pdf(doc, f"turnos_persona_{dni}.pdf")
 
-            # Encabezados
-            encabezados = ["ID", "Fecha", "Hora", "Estado"]
-            for header in encabezados:
-                table.add(
-                    TableCell(
-                        Paragraph(header, font_color=X11Color("White"),
-                                  font_size=12, text_alignment=Alignment.CENTERED),
-                        background_color=HexColor("#1976D2")
-                    )
-                )
-
-            # Filas de datos (centradas y alternadas)
-            for i, turno in enumerate(reporte.turnos):
-                bg_color = HexColor("#E3F2FD") if i % 2 == 0 else HexColor("#FFFFFF")
-                table.add(TableCell(Paragraph(str(turno.id), text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(str(turno.fecha), text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(str(turno.hora), text_alignment=Alignment.CENTERED), background_color=bg_color))
-                table.add(TableCell(Paragraph(turno.estado.capitalize(), text_alignment=Alignment.CENTERED), background_color=bg_color))
-
-            layout.add(table)
-
-        # --- Pie de página ---
-        layout.add(Paragraph(" "))
-        layout.add(
-            Paragraph(
-                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                font_size=9,
-                font_color=HexColor("#424242"),
-                text_alignment=Alignment.RIGHT,
-            )
-        )
-
-        # Guardar PDF
-        carpeta_destino = "reportes_pdf"
-        os.makedirs(carpeta_destino, exist_ok=True)
-        nombre_archivo = f"turnos_persona_{dni}.pdf"
-        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
-
-        with open(ruta_completa, "wb") as f:
-            PDF.dumps(f, doc)
-
-        # Retornar el archivo listo para descargar
-        return FileResponse(
-            path=ruta_completa,
-            media_type="application/pdf",
-            filename=nombre_archivo,
-        )
-
-    except HTTPException as e:
-        # Reenviamos el error si ya es una excepción de FastAPI
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
-        # Cualquier otro error inesperado
-        raise HTTPException(status_code=500, detail=f"Error al generar el reporte PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
     
-
 def generar_pdf_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
-    """
-    Genera un PDF con las personas que tienen al menos 'min_cancelados' turnos cancelados.
-    """
+    """Genera un PDF con las personas que tienen al menos 'min_cancelados' turnos cancelados."""
     try:
-        # Obtener datos desde el CRUD normal
         personas = CrudReporte.get_personas_con_turnos_cancelados(db, min_cancelados)
-
-        # Crear documento PDF
-        doc = Document()
-        page = Page()
-        doc.add_page(page)
-        layout = SingleColumnLayout(page)
-
-        # --- Encabezado ---
-        layout.add(
-            Paragraph(
-                "SL - UNLA LAB 2025 - GRUPO 5",
-                font_size=16,
-                font_color=HexColor("#1E88E5"),
-                text_alignment=Alignment.CENTERED
-            )
+        doc, layout = _crear_doc_encabezado(
+            f"Personas con al menos {min_cancelados} turnos cancelados"
         )
-        layout.add(
-            Paragraph(
-                f"Personas con al menos {min_cancelados} turnos cancelados",
-                font_size=14,
-                text_alignment=Alignment.CENTERED
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                font_size=10
-            )
-        )
-        layout.add(Paragraph(" "))
 
-        # 3️⃣ Validar si hay datos
-        if not personas or len(personas) == 0:
-            layout.add(
-                Paragraph(
-                    "⚠ No se encontraron personas con turnos cancelados en este período.",
-                    font_color=HexColor("#D32F2F"),
-                    font_size=12,
-                    text_alignment=Alignment.CENTERED
-                )
-            )
+        if not personas:
+            layout.add(Paragraph("No se encontraron personas con tantos turnos cancelados."))
         else:
-            # Crear tabla con encabezados
-            col_count = 4
-            ancho_total = Decimal(520)
-            col_widths = [ancho_total / Decimal(col_count)] * col_count
+            filas = [
+                [
+                    p.id_usuario,
+                    p.nombre,
+                    p.cantidad_cancelados,
+                    ", ".join(f"{t.fecha} {t.hora}" for t in p.turnos_cancelados)
+                ]
+                for p in personas
+            ]
+            layout.add(_crear_tabla(["ID", "Nombre", "Cancelados", "Turnos (Fecha y Hora)"], filas))
+            layout.add(Paragraph(f"Total: {len(personas)}", font_size=11,
+                                 font_color=HexColor("#0D47A1"), text_alignment=Alignment.RIGHT))
 
-            if not col_widths or col_count == 0:
-                raise HTTPException(status_code=500, detail="Error interno: tabla vacía o mal configurada")
-
-            table = FixedColumnWidthTable(
-                number_of_rows=len(personas) + 1,
-                number_of_columns=col_count,
-                column_widths=col_widths
-            )
-
-            # --- Encabezados ---
-            encabezados = ["ID Persona", "Nombre", "Cancelados", "Turnos (Fecha y Hora)"]
-            for header in encabezados:
-                table.add(
-                    TableCell(
-                        Paragraph(
-                            header,
-                            font_color=X11Color("White"),
-                            font_size=12,
-                            text_alignment=Alignment.CENTERED
-                        ),
-                        background_color=HexColor("#1976D2")
-                    )
-                )
-
-            # --- Filas ---
-            for persona in personas:
-                turnos_texto = ", ".join(
-                    [f"{t.fecha} {t.hora}" for t in persona.turnos_cancelados]
-                ) if persona.turnos_cancelados else "-"
-
-                table.add(TableCell(Paragraph(str(persona.id_usuario), text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(persona.nombre, text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(str(persona.cantidad_cancelados), text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(turnos_texto, text_alignment=Alignment.CENTERED)))
-
-            layout.add(table)
-
-        # --- Pie de página ---
-        layout.add(Paragraph(" "))
-        layout.add(
-            Paragraph(
-                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                font_size=9,
-                font_color=HexColor("#424242"),
-                text_alignment=Alignment.RIGHT
-            )
-        )
-
-        # Guardar PDF
-        carpeta_destino = "reportes_pdf"
-        os.makedirs(carpeta_destino, exist_ok=True)
-        nombre_archivo = f"personas_con_turnos_cancelados_min{min_cancelados}.pdf"
-        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
-
-        with open(ruta_completa, "wb") as f:
-            PDF.dumps(f, doc)
-
-        # Retornar archivo PDF
-        return FileResponse(
-            path=ruta_completa,
-            media_type="application/pdf",
-            filename=nombre_archivo
-        )
+        _pie_de_pagina(layout)
+        return _guardar_y_retornar_pdf(doc, f"personas_cancelados_{min_cancelados}.pdf")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
-
+    
 
 def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
-    """
-    Genera un PDF con los turnos confirmados entre dos fechas.
-    """
-
+    """Genera un PDF con los turnos confirmados dentro de un rango de fechas."""
     try:
-        # Obtener los turnos confirmados y total
-        turnos = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, 0, 1000)
-        total = CrudReporte.get_total_turnos_confirmados_periodo(db, desde, hasta)
+        reporte = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta)
 
-        # Crear documento PDF
-        doc = Document()
-        page = Page()
-        doc.add_page(page)
-        layout = SingleColumnLayout(page)
+        # Verificamos que reporte tenga datos válidos
+        turnos = getattr(reporte, "turnos", reporte or [])
+        if not isinstance(turnos, list):
+            turnos = []
 
-        # --- Encabezado ---
-        layout.add(
-            Paragraph(
-                "SL - UNLA LAB 2025 - GRUPO 5",
-                font_size=16,
-                font_color=HexColor("#1E88E5"),
-                text_alignment=Alignment.CENTERED
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Turnos confirmados del {desde.strftime('%d/%m/%Y')} al {hasta.strftime('%d/%m/%Y')}",
-                font_size=14,
-                text_alignment=Alignment.CENTERED
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                font_size=10
-            )
-        )
-        layout.add(Paragraph(" "))
+        titulo = f"Turnos confirmados entre {desde.strftime('%d/%m/%Y')} y {hasta.strftime('%d/%m/%Y')}"
+        subtitulo = f"Total confirmados: {len(turnos)}" if turnos else ""
+        doc, layout = _crear_doc_encabezado(titulo, subtitulo)
 
-        # Validar si hay turnos
-        if not turnos or len(turnos) == 0:
-            layout.add(
-                Paragraph(
-                    "⚠ No hay turnos confirmados en el período seleccionado.",
-                    font_color=HexColor("#D32F2F"),
-                    font_size=12,
-                    text_alignment=Alignment.CENTERED
-                )
-            )
+        if not turnos:
+            layout.add(Paragraph("No se registraron turnos confirmados en este período."))
         else:
-            # Crear tabla con encabezados
-            col_count = 4
-            ancho_total = Decimal(520)
-            col_widths = [ancho_total / Decimal(col_count)] * col_count
-
-            table = FixedColumnWidthTable(
-                number_of_rows=len(turnos) + 1,
-                number_of_columns=col_count,
-                column_widths=col_widths
-            )
-
-            # --- Encabezados ---
-            encabezados = ["ID Turno", "Fecha", "Hora", "Persona"]
-            for header in encabezados:
-                table.add(
-                    TableCell(
-                        Paragraph(
-                            header,
-                            font_color=X11Color("White"),
-                            font_size=12,
-                            text_alignment=Alignment.CENTERED
-                        ),
-                        background_color=HexColor("#1976D2")
-                    )
-                )
-
-            # --- Filas ---
+            filas = []
             for t in turnos:
-                table.add(TableCell(Paragraph(str(t.id), text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(str(t.fecha), text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(str(t.hora), text_alignment=Alignment.CENTERED)))
+                # Intentamos obtener el nombre de la persona de forma segura
+                persona = getattr(t, "persona_nombre", None) or getattr(getattr(t, "persona", None), "nombre", "Sin asignar")
+                filas.append([t.id, t.fecha, t.hora, persona, t.estado.capitalize()])
 
-                # Algunos registros pueden no tener relación a persona (precaución)
-                persona_nombre = t.persona.nombre if hasattr(t, "persona") and t.persona else "Sin asignar"
-                table.add(TableCell(Paragraph(persona_nombre, text_alignment=Alignment.CENTERED)))
+            layout.add(_crear_tabla(["ID", "Fecha", "Hora", "Persona", "Estado"], filas))
 
-            layout.add(table)
-
-            # --- Total ---
-            layout.add(Paragraph(" "))
-            layout.add(
-                Paragraph(
-                    f"Total de turnos confirmados: {total}",
-                    font_size=11,
-                    font_color=HexColor("#0D47A1"),
-                    text_alignment=Alignment.RIGHT
-                )
-            )
-
-        # --- Pie de página ---
-        layout.add(Paragraph(" "))
-        layout.add(
-            Paragraph(
-                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                font_size=9,
-                font_color=HexColor("#424242"),
-                text_alignment=Alignment.RIGHT
-            )
-        )
-
-        # Guardar PDF
-        carpeta_destino = "reportes_pdf"
-        os.makedirs(carpeta_destino, exist_ok=True)
-        nombre_archivo = f"turnos_confirmados_{desde}_{hasta}.pdf"
-        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
-
-        with open(ruta_completa, "wb") as f:
-            PDF.dumps(f, doc)
-
-        # Retornar el archivo
-        return FileResponse(
-            path=ruta_completa,
-            media_type="application/pdf",
-            filename=nombre_archivo
-        )
+        _pie_de_pagina(layout)
+        nombre = f"turnos_confirmados_{desde.strftime('%Y%m%d')}_{hasta.strftime('%Y%m%d')}.pdf"
+        return _guardar_y_retornar_pdf(doc, nombre)
 
     except Exception as e:
+        print(f"[ERROR PDF TURNOS CONFIRMADOS] {e}")  # te mostrará el problema real en consola
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
-    
+
+
+
 def generar_pdf_estado_personas(db: Session, habilitada: bool):
-    """Genera un PDF con la lista de personas habilitadas o inhabilitadas."""
-
+    """Genera un PDF con las personas habilitadas o inhabilitadas."""
     try:
-        # Obtener datos desde el CRUD
         personas = CrudReporte.get_personas_por_estado(db, habilitada)
-        estado_texto = "HABILITADAS" if habilitada else "INHABILITADAS"
+        estado = "HABILITADAS" if habilitada else "INHABILITADAS"
+        doc, layout = _crear_doc_encabezado(f"Personas {estado}")
 
-        # Crear documento PDF
-        doc = Document()
-        page = Page()
-        doc.add_page(page)
-        layout = SingleColumnLayout(page)
-
-        # --- Encabezado ---
-        layout.add(
-            Paragraph(
-                "SL - UNLA LAB 2025 - GRUPO 5",
-                font_size=16,
-                font_color=HexColor("#1E88E5"),
-                text_alignment=Alignment.CENTERED
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Reporte de personas {estado_texto}",
-                font_size=14,
-                text_alignment=Alignment.CENTERED
-            )
-        )
-        layout.add(
-            Paragraph(
-                f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                font_size=10
-            )
-        )
-        layout.add(Paragraph(" "))
-
-        # --- Si no hay resultados ---
-        if not personas or len(personas) == 0:
-            layout.add(
-                Paragraph(
-                    f"No se encontraron personas {estado_texto.lower()}.",
-                    font_color=HexColor("#D32F2F"),
-                    text_alignment=Alignment.CENTERED
-                )
-            )
+        if not personas:
+            layout.add(Paragraph(f"No hay personas {estado.lower()} en el sistema."))
         else:
-            # Crear tabla
-            col_count = 3
-            ancho_total = Decimal(520)
-            col_widths = [ancho_total / Decimal(col_count)] * col_count
-            table = FixedColumnWidthTable(
-                number_of_rows=len(personas) + 1,
-                number_of_columns=col_count,
-                column_widths=col_widths
-            )
+            filas = [[p.id, p.nombre, p.dni] for p in personas]
+            layout.add(_crear_tabla(["ID", "Nombre", "DNI"], filas))
+            layout.add(Paragraph(f"Total: {len(personas)}", font_size=11,
+                                 font_color=HexColor("#0D47A1"), text_alignment=Alignment.RIGHT))
 
-            # --- Encabezados ---
-            encabezados = ["ID", "Nombre", "DNI"]
-            for header in encabezados:
-                table.add(
-                    TableCell(
-                        Paragraph(
-                            header,
-                            font_color=X11Color("White"),
-                            font_size=12,
-                            text_alignment=Alignment.CENTERED
-                        ),
-                        background_color=HexColor("#1976D2")
-                    )
-                )
-
-            # --- Filas (centradas) ---
-            for persona in personas:
-                table.add(TableCell(Paragraph(str(persona.id), text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(persona.nombre, text_alignment=Alignment.CENTERED)))
-                table.add(TableCell(Paragraph(persona.dni, text_alignment=Alignment.CENTERED)))
-
-            layout.add(table)
-
-            # --- Total ---
-            layout.add(Paragraph(" "))
-            layout.add(
-                Paragraph(
-                    f"Total de personas {estado_texto.lower()}: {len(personas)}",
-                    font_size=11,
-                    font_color=HexColor("#0D47A1"),
-                    text_alignment=Alignment.RIGHT
-                )
-            )
-
-        # --- Pie de página ---
-        layout.add(Paragraph(" "))
-        layout.add(
-            Paragraph(
-                "Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                font_size=9,
-                font_color=HexColor("#424242"),
-                text_alignment=Alignment.RIGHT
-            )
-        )
-
-        # Guardar PDF
-        carpeta_destino = "reportes_pdf"
-        os.makedirs(carpeta_destino, exist_ok=True)
-        nombre_archivo = f"reporte_personas_{estado_texto.lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
-
-        with open(ruta_completa, "wb") as f:
-            PDF.dumps(f, doc)
-
-        # Retornar el archivo
-        return FileResponse(
-            path=ruta_completa,
-            media_type="application/pdf",
-            filename=nombre_archivo
-        )
+        _pie_de_pagina(layout)
+        return _guardar_y_retornar_pdf(doc, f"personas_{estado.lower()}_{datetime.now().strftime('%Y%m%d')}.pdf")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
