@@ -13,7 +13,7 @@ def generar_csv_turnos_por_fecha(db: Session, fecha: date):
 
     # En caso de no haber turnos esa fecha
     if not datos.turnos:
-        raise HTTPException(status_code=404, detail=f"No hay turnos programados el día {datos.fecha}")
+        raise HTTPException(status_code=404, detail=f"No hay turnos programados el día {fecha}")
 
     # Los formateamos
     datos_turnos = []
@@ -27,6 +27,7 @@ def generar_csv_turnos_por_fecha(db: Session, fecha: date):
 
     # Se crea un DataFrame con la información formateada
     df = pd.DataFrame(datos_turnos)
+    df = df.sort_values(['hora'])
 
     # Modificamos la ruta de salida
     nombre_archivo = f"turnos_{fecha}.csv"
@@ -56,10 +57,7 @@ def generar_csv_turnos_cancelados_por_mes(db: Session):
                 'nombre_persona': persona_info.nombre,
                 'turno_id': turno.id,
                 'fecha': turno.fecha.strftime('%Y-%m-%d'),
-                'hora': turno.hora.strftime('%H:%M') if hasattr(turno.hora, 'strftime') else str(turno.hora),
-                'mes': datos.mes,
-                'anio': datos.anio,
-                'estado': 'cancelado'
+                'hora': turno.hora.strftime('%H:%M') if hasattr(turno.hora, 'strftime') else str(turno.hora)
             })
 
     # Se crea un DataFrame con la información formateada
@@ -76,7 +74,38 @@ def generar_csv_turnos_cancelados_por_mes(db: Session):
 
     return f"CSV guardado en: {ruta}"
 
+def generar_csv_turnos_por_persona(dni: str, db: Session):
+    # Importamos los datos que vamos a necesitar
+    datos = CrudReporte.get_turnos_por_persona_dni(db, dni)
 
+    # En caso de que esa persona no registre turnos
+    if not datos.turnos:
+        raise HTTPException(status_code=404, detail=f"No hay turnos programados para el usuario con el DNI {dni}")
+
+    # Los formateamos
+    datos_turnos = []
+    for turno in datos.turnos:
+        datos_turnos.append({
+            'turno_id': turno.id,
+            'fecha': turno.fecha.strftime('%Y-%m-%d'),
+            'hora': turno.hora.strftime('%H:%M') if hasattr(turno.hora, 'strftime') else str(turno.hora),
+            'estado': turno.estado
+        })
+
+    # Se crea un DataFrame con la información formateada
+    df = pd.DataFrame(datos_turnos)
+    df = df.sort_values(['turno_id'])
+
+    # Modificamos la ruta de salida
+    nombre_archivo = f"turnos_por_dni_{dni}.csv"
+    carpeta_destino = Path("reportes_csv")
+    carpeta_destino.mkdir(exist_ok=True) # Crea la carpeta si no existe
+    ruta = carpeta_destino / nombre_archivo
+
+    # Creamos el archivo CSV
+    df.to_csv(ruta, index=False)
+
+    return f"CSV guardado en: {ruta}"
 
 
 

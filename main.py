@@ -197,6 +197,10 @@ def csv_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
 def csv_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_cancelados_por_mes(db)
 
+@app.get("/reportes/csv/turnos-por-persona", tags=["Reportes CSV"])
+def csv_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
+    return CrudReporteCSV.generar_csv_turnos_por_persona(dni, db)
+
 
 
 

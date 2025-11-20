@@ -1,0 +1,8 @@
+turno_id,fecha,hora,estado
+8,2025-11-17,11:00,cancelado
+9,2025-10-19,11:00,confirmado
+10,2025-10-28,11:00,cancelado
+11,2025-10-29,11:00,cancelado
+12,2025-10-31,11:00,cancelado
+13,2025-11-14,11:00,confirmado
+14,2025-11-12,11:00,confirmado
