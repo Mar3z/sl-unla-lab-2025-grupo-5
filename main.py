@@ -126,11 +126,10 @@ def reporte_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(g
 def reporte_turnos_confirmados_periodo(desde: date, hasta: date, pagina: int = 1, db: Session = Depends(get_db), skip: int = 0, limit: int = 5):
     return CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, skip, limit)
 
-@app.get("/reportes/estado-personas", response_model=list[SchPersona.Persona], tags=["Reportes"])
+@app.get("/reportes/estado-personas", tags=["Reportes"])
 def reporte_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
     """Obtiene personas habilitadas o inhabilitadas para sacar turnos"""
-    personas = CrudReporte.get_personas_por_estado(db, habilitada)
-    return personas
+    return CrudReporte.get_personas_por_estado(db, habilitada)
 
 
 
@@ -188,6 +187,8 @@ def csv_turnos_cancelados(min: int=5, db: Session = Depends(get_db)):
 def csv_turnos_confirmados_por_periodo(desde: date, hasta: date, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_confirmados_periodo(db, desde, hasta)
 
-
+@app.get("/reportes/csv/estado-personas", tags=["Reportes CSV"])
+def csv_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
+    return CrudReporteCSV.generar_csv_personas_por_estado(db, habilitada)
 
 

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from decimal import Decimal
 import crud.Reporte as CrudReporte
+import crud.Persona as CrudPersona
 import os
 
 # ──────────────────────────────────────────────
@@ -193,9 +194,7 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
         reporte = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta)
 
         # Verificamos que reporte tenga datos válidos
-        turnos = getattr(reporte, "turnos", reporte or [])
-        if not isinstance(turnos, list):
-            turnos = []
+        turnos = reporte.get("turnos", [])
 
         titulo = f"Turnos confirmados entre {desde.strftime('%d/%m/%Y')} y {hasta.strftime('%d/%m/%Y')}"
         subtitulo = f"Total confirmados: {len(turnos)}" if turnos else ""
@@ -206,11 +205,9 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
         else:
             filas = []
             for t in turnos:
-                # Intentamos obtener el nombre de la persona de forma segura
-                persona = getattr(t, "persona_nombre", None) or getattr(getattr(t, "persona", None), "nombre", "Sin asignar")
-                filas.append([t.id, t.fecha, t.hora, persona, t.estado.capitalize()])
+                filas.append([t.id, t.fecha, t.hora, t.persona_nombre])
 
-            layout.add(_crear_tabla(["ID", "Fecha", "Hora", "Persona", "Estado"], filas))
+            layout.add(_crear_tabla(["ID", "Fecha", "Hora", "Persona"], filas))
 
         _pie_de_pagina(layout)
         nombre = f"turnos_confirmados_{desde.strftime('%Y%m%d')}_{hasta.strftime('%Y%m%d')}.pdf"
@@ -225,7 +222,8 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
 def generar_pdf_estado_personas(db: Session, habilitada: bool):
     """Genera un PDF con las personas habilitadas o inhabilitadas."""
     try:
-        personas = CrudReporte.get_personas_por_estado(db, habilitada)
+        resultado = CrudReporte.get_personas_por_estado(db, habilitada)
+        personas = [CrudPersona.get_persona(db, p.id) for p in resultado["personas"]]
         estado = "HABILITADAS" if habilitada else "INHABILITADAS"
         doc, layout = _crear_doc_encabezado(f"Personas {estado}")
 
