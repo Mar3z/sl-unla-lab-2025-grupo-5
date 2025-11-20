@@ -107,6 +107,37 @@ def generar_csv_turnos_por_persona(dni: str, db: Session):
 
     return f"CSV guardado en: {ruta}"
 
+def generar_csv_turnos_cancelados(db: Session, min_cancelados: int = 5):
+    # Importamos los datos que vamos a necesitar
+    datos = CrudReporte.get_personas_con_turnos_cancelados(db, min_cancelados)
+
+    # En caso de no haber turnos esa fecha
+    if not datos:
+        raise HTTPException(status_code=404, detail=f"No hay personas con {min_cancelados} o más turnos cancelados")
+
+    # Los formateamos
+    datos_csv = []
+    for persona in datos:
+        datos_csv.append({
+            'persona_id': persona.id_usuario,
+            'nombre': persona.nombre,
+            'total_cancelados': persona.cantidad_cancelados
+        })
+
+    # Se crea un DataFrame con la información formateada
+    df = pd.DataFrame(datos_csv)
+
+    # Modificamos la ruta de salida
+    nombre_archivo = f"personas_con_{min_cancelados}_o_mas_cancelaciones.csv"
+    carpeta_destino = Path("reportes_csv")
+    carpeta_destino.mkdir(exist_ok=True) # Crea la carpeta si no existe
+    ruta = carpeta_destino / nombre_archivo
+
+    # Creamos el archivo CSV
+    df.to_csv(ruta, index=False)
+
+    return f"CSV guardado en: {ruta}"
+
 
 
 
