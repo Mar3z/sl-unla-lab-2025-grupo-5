@@ -11,6 +11,7 @@ from crud import Persona as CrudPersona
 from crud import Turno as CrudTurno
 from crud import Reporte as CrudReporte
 from crud import Reporte_PDF as CrudReporte_PDF
+from crud import ReporteCSV as CrudReporteCSV
 from datetime import date, datetime, time, timedelta
 from sqlalchemy.exc import IntegrityError
 from typing import List
@@ -185,3 +186,17 @@ def endpoint_pdf_turnos_confirmados(desde: date, hasta: date, db: Session = Depe
 @app.get("/reportes/pdf/estado-personas", tags=["Reportes PDF"])
 def endpoint_pdf_estado_personas(habilitada: bool, db: Session = Depends(get_db)):
     return CrudReporte_PDF.generar_pdf_estado_personas(db, habilitada)
+
+# >>> Endpoints de reportes en CSV <<< (PARTE G)
+
+@app.get("/reportes/csv/turnos-por-fecha", tags=["Reportes CSV"])
+def csv_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
+    return CrudReporteCSV.generar_csv_turnos_por_fecha(db, fecha)
+
+@app.get("/reportes/csv/turnos-cancelados-por-mes", tags=["Reportes CSV"])
+def csv_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
+    return CrudReporteCSV.generar_csv_turnos_cancelados_por_mes(db)
+
+
+
+
