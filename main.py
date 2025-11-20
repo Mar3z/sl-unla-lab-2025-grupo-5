@@ -123,29 +123,8 @@ def reporte_personas_con_turnos_cancelados(min: int = 5, db: Session = Depends(g
     return CrudReporte.get_personas_con_turnos_cancelados(db, min)
 
 @app.get("/reportes/turnos-confirmados", tags=["Reportes"])
-def reporte_turnos_confirmados_periodo(desde: date, hasta: date, pagina: int = 1, db: Session = Depends(get_db)):
-
-    if desde > hasta:
-        raise HTTPException(status_code=400, detail="La fecha 'desde' no puede ser mayor que 'hasta'")
-    
-    # Calcular skip para paginación
-    registros_por_pagina = 5
-    skip = (pagina - 1) * registros_por_pagina
-    
-    # Obtener datos paginados
-    turnos = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, skip, registros_por_pagina)
-    total = CrudReporte.get_total_turnos_confirmados_periodo(db, desde, hasta)
-    total_paginas = (total + registros_por_pagina - 1) // registros_por_pagina
-    
-    return {
-        "turnos": turnos,
-        "paginacion": {
-            "pagina_actual": pagina,
-            "total_paginas": total_paginas,
-            "total_turnos": total,
-            "turnos_por_pagina": registros_por_pagina
-        }
-    }
+def reporte_turnos_confirmados_periodo(desde: date, hasta: date, pagina: int = 1, db: Session = Depends(get_db), skip: int = 0, limit: int = 5):
+    return CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta, skip, limit)
 
 @app.get("/reportes/estado-personas", response_model=list[SchPersona.Persona], tags=["Reportes"])
 def reporte_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
@@ -204,6 +183,10 @@ def csv_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
 @app.get("/reportes/csv/turnos_cancelados", tags=["Reportes CSV"])
 def csv_turnos_cancelados(min: int=5, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_cancelados(db, min)
+
+@app.get("/reportes/csv/turnos_confirmados", tags=["Reportes CSV"])
+def csv_turnos_confirmados_por_periodo(desde: date, hasta: date, db: Session = Depends(get_db)):
+    return CrudReporteCSV.generar_csv_turnos_confirmados_periodo(db, desde, hasta)
 
 
 

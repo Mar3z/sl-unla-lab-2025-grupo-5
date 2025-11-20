@@ -138,7 +138,38 @@ def generar_csv_turnos_cancelados(db: Session, min_cancelados: int = 5):
 
     return f"CSV guardado en: {ruta}"
 
+def generar_csv_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
+    # Importamos los datos que vamos a necesitar
+    datos = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta)
 
+    # En caso de no haber turnos en ese periodo
+    if not datos["turnos"]:
+        raise HTTPException(status_code=404, detail=f"No hay turnos confirmados del {desde} hasta {hasta}")
+
+    # Los formateamos
+    datos_turnos = []
+    for turno in datos["turnos"]:
+        datos_turnos.append({
+            'id': turno.id,
+            'fecha': turno.fecha.strftime('%Y-%m-%d'),
+            'hora': turno.hora.strftime('%H:%M') if hasattr(turno.hora, 'strftime') else str(turno.hora),
+            'persona_id': turno.persona_id
+        })
+
+    # Se crea un DataFrame con la información formateada
+    df = pd.DataFrame(datos_turnos)
+    df = df.sort_values(['fecha','hora'])
+
+    # Modificamos la ruta de salida
+    nombre_archivo = f"turnos_confirmados_{desde}_hasta{hasta}.csv"
+    carpeta_destino = Path("reportes_csv")
+    carpeta_destino.mkdir(exist_ok=True) # Crea la carpeta si no existe
+    ruta = carpeta_destino / nombre_archivo
+
+    # Creamos el archivo CSV
+    df.to_csv(ruta, index=False)
+
+    return f"CSV guardado en: {ruta}"
 
 
 
