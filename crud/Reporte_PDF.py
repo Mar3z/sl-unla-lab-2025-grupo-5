@@ -14,7 +14,7 @@ import crud.Reporte as CrudReporte
 import os
 
 # ──────────────────────────────────────────────
-# 🔧 FUNCIONES AUXILIARES
+# FUNCIONES AUXILIARES
 # ──────────────────────────────────────────────
 
 def _crear_doc_encabezado(titulo: str, subtitulo: str = ""):
@@ -81,7 +81,7 @@ def _guardar_y_retornar_pdf(doc: Document, nombre: str):
     return FileResponse(path=ruta, media_type="application/pdf", filename=nombre)
 
 # ──────────────────────────────────────────────
-# 📄 REPORTES PDF
+# REPORTES PDF
 # ──────────────────────────────────────────────
 
 def generar_pdf_turnos_por_fecha(fecha: date, db: Session):
