@@ -11,14 +11,17 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date
 from decimal import Decimal
 import crud.Reporte as CrudReporte
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 import os
+from sqlalchemy import and_
+from crud.Turno import Turno
 
-# ──────────────────────────────────────────────
-# FUNCIONES AUXILIARES
-# ──────────────────────────────────────────────
+
+# --------------------------- FUNCIONES AUXILIARES -------------------------------
 
 def _crear_doc_encabezado(titulo: str, subtitulo: str = ""):
-    """Crea un documento PDF con el encabezado estándar."""
+    # Crea un documento PDF con el encabezado estándar
     doc = Document()
     page = Page()
     doc.add_page(page)
@@ -37,9 +40,9 @@ def _crear_doc_encabezado(titulo: str, subtitulo: str = ""):
 
 
 def _crear_tabla(encabezados: list[str], filas: list[list[str]]):
-    """Crea una tabla con estilo y filas alternadas."""
+    # Crea una tabla con estilo y filas alternadas
     if not encabezados:
-        return Paragraph("⚠ No hay datos para mostrar.", font_color=HexColor("#D32F2F"))
+        return Paragraph("No hay datos para mostrar.", font_color=HexColor("#D32F2F"))
 
     col_count = len(encabezados)
     ancho_total = Decimal(520)
@@ -64,28 +67,31 @@ def _crear_tabla(encabezados: list[str], filas: list[list[str]]):
 
 
 def _pie_de_pagina(layout):
-    """Agrega el pie de página común."""
+    # Agrega el pie de página
     layout.add(Paragraph(" "))
-    layout.add(Paragraph("Sistema de Gestión de Turnos - SL UNLA LAB 2025",
-                         font_size=9, font_color=HexColor("#424242"),
+    layout.add(Paragraph("Sistema de Gestión de Turnos - SL UNLA LAB 2025",font_size=9, font_color=HexColor("#424242"),
                          text_alignment=Alignment.RIGHT))
 
 
 def _guardar_y_retornar_pdf(doc: Document, nombre: str):
-    """Guarda el PDF generado y devuelve el archivo listo para descargar."""
-    carpeta = "reportes_pdf"
-    os.makedirs(carpeta, exist_ok=True)
-    ruta = os.path.join(carpeta, nombre)
-    with open(ruta, "wb") as f:
-        PDF.dumps(f, doc)
-    return FileResponse(path=ruta, media_type="application/pdf", filename=nombre)
+    # Devuelve un PDF en memoria sin guardarlo en disco
+    buffer = BytesIO()
+    PDF.dumps(buffer, doc)
+    buffer.seek(0)
 
-# ──────────────────────────────────────────────
-# REPORTES PDF
-# ──────────────────────────────────────────────
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{nombre}"'
+        }
+    )
+
+
+# ---------------------- REPORTES PDF ------------------------------
 
 def generar_pdf_turnos_por_fecha(fecha: date, db: Session):
-    """PDF con los turnos registrados en una fecha específica."""
+    # genera PDF con los turnos registrados en una fecha específica
     try:
         reporte = CrudReporte.get_turnos_por_fecha(db, fecha)
         doc, layout = _crear_doc_encabezado(f"Turnos del día {fecha.strftime('%d/%m/%Y')}")
@@ -102,36 +108,38 @@ def generar_pdf_turnos_por_fecha(fecha: date, db: Session):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
 
-
+ # ---------------------------------------------------------------------
 def generar_pdf_turnos_cancelados_mes_actual(db: Session):
-    """PDF con los turnos cancelados del mes actual."""
     try:
+        # Obtenemos los datos desde el CRUD
         reporte = CrudReporte.get_turnos_cancelados_mes_actual(db)
+
         doc, layout = _crear_doc_encabezado(
             f"Turnos cancelados - {reporte.mes.capitalize()} {reporte.anio}",
             f"Total cancelados: {reporte.cantidad}"
         )
 
-        filas = [
-            [persona.nombre, t.fecha, t.hora]
-            for persona in getattr(reporte, "turnos", [])
-            for t in getattr(persona, "turnos", [])
-        ]
+        filas = []
+        for persona in reporte.turnos:          # lista de personas con turnos cancelados
+            for turno in persona.turnos:        # lista de turnos basicos
+                filas.append([persona.nombre,turno.fecha,turno.hora])
 
+        # Agregamos contenido segun haya datos o no
         if not filas:
             layout.add(Paragraph("No se registraron turnos cancelados en este mes."))
         else:
-            layout.add(_crear_tabla(["Persona", "Fecha", "Hora"], filas))
+            layout.add(_crear_tabla(["Persona", "Fecha", "Hora"],filas))
 
+        # Pie y retorno del PDF
         _pie_de_pagina(layout)
-        return _guardar_y_retornar_pdf(doc, f"turnos_cancelados_{reporte.mes}_{reporte.anio}.pdf")
+        return _guardar_y_retornar_pdf(doc,f"turnos_cancelados_{reporte.mes}_{reporte.anio}.pdf")
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
+        raise HTTPException(status_code=500,detail=f"Error al generar el PDF: {e}")
 
-
+ # -------------------------------------------------------------------------------------
 def generar_pdf_turnos_por_persona(dni: str, db: Session):
-    """PDF con los turnos de una persona según su DNI."""
+    # genera PDF con los turnos de una persona según su DNI
     try:
         reporte = CrudReporte.get_turnos_por_persona_dni(db, dni)
         if not reporte:
@@ -151,13 +159,12 @@ def generar_pdf_turnos_por_persona(dni: str, db: Session):
         _pie_de_pagina(layout)
         return _guardar_y_retornar_pdf(doc, f"turnos_persona_{dni}.pdf")
 
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
     
+ # ---------------------------------------------------------------------------------    
 def generar_pdf_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
-    """Genera un PDF con las personas que tienen al menos 'min_cancelados' turnos cancelados."""
+    # genera un PDF con las personas que tienen al menos 'min_cancelados' turnos cancelados.
     try:
         personas = CrudReporte.get_personas_con_turnos_cancelados(db, min_cancelados)
         doc, layout = _crear_doc_encabezado(
@@ -186,16 +193,12 @@ def generar_pdf_personas_con_turnos_cancelados(db: Session, min_cancelados: int 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
     
-
+ # ------------------------------------------------------------------   
 def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
-    """Genera un PDF con los turnos confirmados dentro de un rango de fechas."""
     try:
-        reporte = CrudReporte.get_turnos_confirmados_periodo(db, desde, hasta)
-
-        # Verificamos que reporte tenga datos válidos
-        turnos = getattr(reporte, "turnos", reporte or [])
-        if not isinstance(turnos, list):
-            turnos = []
+        # Obtenemos la lista
+        turnos = db.query(Turno).filter(
+            and_(Turno.estado == "confirmado",Turno.fecha >= desde,Turno.fecha <= hasta)).all()
 
         titulo = f"Turnos confirmados entre {desde.strftime('%d/%m/%Y')} y {hasta.strftime('%d/%m/%Y')}"
         subtitulo = f"Total confirmados: {len(turnos)}" if turnos else ""
@@ -206,24 +209,22 @@ def generar_pdf_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
         else:
             filas = []
             for t in turnos:
-                # Intentamos obtener el nombre de la persona de forma segura
-                persona = getattr(t, "persona_nombre", None) or getattr(getattr(t, "persona", None), "nombre", "Sin asignar")
-                filas.append([t.id, t.fecha, t.hora, persona, t.estado.capitalize()])
+                filas.append([t.id,t.fecha,t.hora,t.persona.nombre,t.estado.capitalize()])
 
-            layout.add(_crear_tabla(["ID", "Fecha", "Hora", "Persona", "Estado"], filas))
+            layout.add(
+                _crear_tabla(["ID", "Fecha", "Hora", "Persona", "Estado"], filas)
+            )
 
         _pie_de_pagina(layout)
         nombre = f"turnos_confirmados_{desde.strftime('%Y%m%d')}_{hasta.strftime('%Y%m%d')}.pdf"
         return _guardar_y_retornar_pdf(doc, nombre)
 
-    except Exception as e:
-        print(f"[ERROR PDF TURNOS CONFIRMADOS] {e}")  # te mostrará el problema real en consola
-        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {e}")
-
-
-
+    except Exception as e: 
+        raise HTTPException(status_code=500,detail=f"Error al generar el PDF: {e}")
+    
+ # ------------------------------------------------------------------
 def generar_pdf_estado_personas(db: Session, habilitada: bool):
-    """Genera un PDF con las personas habilitadas o inhabilitadas."""
+    # genera un PDF con las personas habilitadas o inhabilitadas
     try:
         personas = CrudReporte.get_personas_por_estado(db, habilitada)
         estado = "HABILITADAS" if habilitada else "INHABILITADAS"
