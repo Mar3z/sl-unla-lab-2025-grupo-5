@@ -66,4 +66,5 @@ class TurnoConfirmado(BaseModel):
 class PersonaPorEstado(BaseModel):
     id: int
     nombre: str
+    dni: str
 

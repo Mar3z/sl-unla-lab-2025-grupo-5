@@ -191,15 +191,16 @@ def get_total_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
 
 
 def get_personas_por_estado(db: Session, habilitada: bool):
-    """Obtiene personas habilitadas o inhabilitadas"""
+
     personas = db.query(Persona).filter(Persona.habilitado == habilitada).all()
 
-    personas_formateado = [SchReporte.PersonaPorEstado(
-        id = p.id,
-        nombre = p.nombre
-    )for p in personas]
+    personas_formateado = [
+        SchReporte.PersonaPorEstado(
+            id=p.id,
+            nombre=p.nombre,
+            dni=p.dni
+        )
+        for p in personas
+    ]
 
-    return {
-        "habilitado": habilitada,
-        "personas": personas_formateado
-    }
+    return personas_formateado
