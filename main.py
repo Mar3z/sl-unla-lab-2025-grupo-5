@@ -167,28 +167,52 @@ def endpoint_pdf_estado_personas(habilitada: bool, db: Session = Depends(get_db)
 
 # >>> Endpoints de reportes en CSV <<< (PARTE G)
 
+# Turnos por fecha
 @app.get("/reportes/csv/turnos-por-fecha", tags=["Reportes CSV"])
 def csv_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_por_fecha(db, fecha)
+@app.get("/reportes/csv/descargar-turnos-por-fecha", tags=["Reportes CSV"])
+def descargar_csv_turnos_por_fecha(fecha: date, db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_turnos_por_fecha(db, fecha)
 
+# Turnos cancelados por mes
 @app.get("/reportes/csv/turnos-cancelados-por-mes", tags=["Reportes CSV"])
 def csv_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_cancelados_por_mes(db)
+@app.get("/reportes/csv/descargar-turnos-cancelados-por-mes", tags=["Reportes CSV"])
+def csv_turnos_cancelados_mes_actual(db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_turnos_cancelados_por_mes(db)
 
+# Turnos por persona
 @app.get("/reportes/csv/turnos-por-persona", tags=["Reportes CSV"])
 def csv_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_por_persona(dni, db)
+@app.get("/reportes/csv/descargar-turnos-por-persona", tags=["Reportes CSV"])
+def csv_turnos_por_persona(dni: str, db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_turnos_por_persona(dni, db)
 
-@app.get("/reportes/csv/turnos_cancelados", tags=["Reportes CSV"])
+# Turnos cancelados
+@app.get("/reportes/csv/turnos-cancelados", tags=["Reportes CSV"])
 def csv_turnos_cancelados(min: int=5, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_cancelados(db, min)
+@app.get("/reportes/csv/descargar-turnos-cancelados", tags=["Reportes CSV"])
+def csv_turnos_cancelados(min: int=5, db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_turnos_cancelados(db, min)
 
-@app.get("/reportes/csv/turnos_confirmados", tags=["Reportes CSV"])
+# Turnos confirmados
+@app.get("/reportes/csv/turnos-confirmados", tags=["Reportes CSV"])
 def csv_turnos_confirmados_por_periodo(desde: date, hasta: date, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_turnos_confirmados_periodo(db, desde, hasta)
+@app.get("/reportes/csv/descargar-turnos-confirmados", tags=["Reportes CSV"])
+def csv_turnos_confirmados_por_periodo(desde: date, hasta: date, db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_turnos_confirmados_periodo(db, desde, hasta)
 
+# Personas por estado
 @app.get("/reportes/csv/estado-personas", tags=["Reportes CSV"])
 def csv_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
     return CrudReporteCSV.generar_csv_personas_por_estado(db, habilitada)
+@app.get("/reportes/csv/descargar-estado-personas", tags=["Reportes CSV"])
+def csv_personas_por_estado(habilitada: bool, db: Session = Depends(get_db)):
+    return CrudReporteCSV.descargar_csv_personas_por_estado(db, habilitada)
 
 
