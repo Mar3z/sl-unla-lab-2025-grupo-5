@@ -55,3 +55,15 @@ class TurnosPorPersona(BaseModel):
     id_persona: int
     nombre: str
     turnos: List[TurnoInfoBasica]
+
+class TurnoConfirmado(BaseModel):
+    id: int
+    fecha: date
+    hora: time
+    persona_id: int
+    persona_nombre: str
+
+class PersonaPorEstado(BaseModel):
+    id: int
+    nombre: str
+

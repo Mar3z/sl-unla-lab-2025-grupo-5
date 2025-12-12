@@ -140,15 +140,44 @@ def get_personas_con_turnos_cancelados(db: Session, min_cancelados: int = 5):
     
     return response
 
-def get_turnos_confirmados_periodo(db: Session, desde: date, hasta: date, skip: int = 0, limit: int = 5):
+def get_turnos_confirmados_periodo(db: Session, desde: date, hasta: date, skip: int = 0, limit: int = 5, pagina: int = 1):
     """Obtiene turnos confirmados en un período con paginación"""
-    return db.query(Turno).filter(
+
+    if desde > hasta:
+        raise HTTPException(status_code=400, detail="La fecha 'desde' no puede ser mayor que 'hasta'")
+    
+    # Calcular skip para paginación
+    registros_por_pagina = 5
+    skip = (pagina - 1) * registros_por_pagina
+    
+    # Obtener datos paginados
+    turnos = db.query(Turno).filter(
         and_(
             Turno.estado == "confirmado",
             Turno.fecha >= desde,
             Turno.fecha <= hasta
         )
     ).offset(skip).limit(limit).all()
+    total = get_total_turnos_confirmados_periodo(db, desde, hasta)
+    total_paginas = (total + registros_por_pagina - 1) // registros_por_pagina
+
+    turnos_formateados = [SchReporte.TurnoConfirmado(
+        id = turno.id,
+        fecha = turno.fecha,
+        hora = turno.hora,
+        persona_id = turno.persona.id,
+        persona_nombre = turno.persona.nombre
+    )for turno in turnos]
+    
+    return {
+        "turnos": turnos_formateados,
+        "paginacion": {
+            "pagina_actual": pagina,
+            "total_paginas": total_paginas,
+            "total_turnos": total,
+            "turnos_por_pagina": registros_por_pagina
+        }
+    }
 
 def get_total_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
     """Obtiene el total de turnos confirmados en un período (para paginación)"""
@@ -163,4 +192,14 @@ def get_total_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
 
 def get_personas_por_estado(db: Session, habilitada: bool):
     """Obtiene personas habilitadas o inhabilitadas"""
-    return db.query(Persona).filter(Persona.habilitado == habilitada).all()
+    personas = db.query(Persona).filter(Persona.habilitado == habilitada).all()
+
+    personas_formateado = [SchReporte.PersonaPorEstado(
+        id = p.id,
+        nombre = p.nombre
+    )for p in personas]
+
+    return {
+        "habilitado": habilitada,
+        "personas": personas_formateado
+    }
