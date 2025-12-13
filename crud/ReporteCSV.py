@@ -11,6 +11,60 @@ import csv
 
 import crud.Reporte as CrudReporte
 
+# Función auxiliar
+def generar_reporte_html(titulo: str, df: pd.DataFrame, link_descarga: str):
+
+    html_table = df.to_html(index=False, border=1)
+
+    html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{titulo}</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                h1 {{ color: #333; }}
+                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
+                th {{ background-color: #4CAF50; color: white; }}
+                tr:nth-child(even) {{ background-color: #f2f2f2; }}
+            </style>
+        </head>
+        <body>
+            <h1>{titulo}</h1>
+            <p>Total de registros: {len(df)}</p>
+            {html_table}
+            <br>
+            <a href="{link_descarga}">Descargar</a>
+        </body>
+        </html>
+        """
+
+    return HTMLResponse(content=html_content)
+
+def descargar_reporte_csv(nombre_archivo: str, df: pd.DataFrame):
+
+    # Crear un buffer en memoria para el CSV
+    buffer = io.StringIO()
+    
+    # Escribir CSV al buffer
+    df.to_csv(buffer, index=False, encoding='utf-8')
+    
+    # Obtener el contenido como string
+    csv_content = buffer.getvalue()
+    
+    # Crear una respuesta de streaming
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"inline; filename={nombre_archivo}",
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
+
+
+
 def generar_csv_turnos_por_fecha(db: Session, fecha: date, descargar: bool = False):
     """Muestra los turnos de una fecha específica en formato HTML con botón de descarga."""
     try:
@@ -31,37 +85,15 @@ def generar_csv_turnos_por_fecha(db: Session, fecha: date, descargar: bool = Fal
                 'estado': turno.estado
             })
 
+        # Strings importantes
+        titulo = f"Turnos del día {fecha}"
+        descarga = f"/reportes/csv/descargar-turnos-por-fecha?fecha={fecha}"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(datos_turnos)
         df = df.sort_values(['hora']) # Para ordenarlos por hora
 
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Turnos para {fecha}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Turnos para {fecha}</h1>
-            <p>Total de turnos: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-turnos-por-fecha?fecha={fecha}">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
@@ -92,24 +124,7 @@ def descargar_csv_turnos_por_fecha(db: Session, fecha: date):
     # Modificamos el nombre del archivo
     nombre_archivo = f"turnos_{fecha}.csv"
 
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 def generar_csv_turnos_cancelados_por_mes(db: Session):
     try:
@@ -132,36 +147,14 @@ def generar_csv_turnos_cancelados_por_mes(db: Session):
                     'hora': turno.hora.strftime('%H:%M') if hasattr(turno.hora, 'strftime') else str(turno.hora)
                 })
 
+        # Strings importantes
+        titulo = f"Turnos cancelados {datos.mes} {datos.anio}"
+        descarga = "/reportes/csv/descargar-turnos-cancelados-por-mes"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(datos_turnos)
         
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Turnos cancelados {datos.mes} {datos.anio}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Turnos cancelados en {datos.mes} de {datos.anio}</h1>
-            <p>Total de turnos: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-turnos-cancelados-por-mes">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
@@ -194,24 +187,7 @@ def descargar_csv_turnos_cancelados_por_mes(db: Session):
     # Modificamos el nombre del archivo
     nombre_archivo = f"turnos_cancelados_{datos.mes}_{datos.anio}.csv"
     
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 def generar_csv_turnos_por_persona(dni: str, db: Session):
     try:
@@ -232,37 +208,15 @@ def generar_csv_turnos_por_persona(dni: str, db: Session):
                 'estado': turno.estado
             })
 
+        # Strings importantes
+        titulo = f"Turnos DNI{dni}"
+        descarga = f"/reportes/csv/descargar-turnos-por-persona?dni={dni}"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(datos_turnos)
         df = df.sort_values(['turno_id'])
 
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Turnos DNI{dni}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Turnos DNI{dni}</h1>
-            <p>Total de turnos: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-turnos-por-persona?dni={dni}">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
@@ -294,24 +248,7 @@ def descargar_csv_turnos_por_persona(dni: str, db: Session):
     # Modificamos el nombre del archivo
     nombre_archivo = f"turnos_{dni}.csv"
 
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 def generar_csv_turnos_cancelados(db: Session, min_cancelados: int = 5):
     try:
@@ -331,36 +268,14 @@ def generar_csv_turnos_cancelados(db: Session, min_cancelados: int = 5):
                 'total_cancelados': persona.cantidad_cancelados
             })
 
+        # Strings importantes
+        titulo = f"Personas con {min_cancelados} o más turnos cancelados"
+        descarga = f"/reportes/csv/descargar-turnos-cancelados?min={min_cancelados}"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(datos_csv)
 
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Personas con {min_cancelados} o más turnos cancelados</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Personas con {min_cancelados} o más turnos cancelados</h1>
-            <p>Total de personas: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-turnos-cancelados?min={min_cancelados}">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
@@ -390,24 +305,7 @@ def descargar_csv_turnos_cancelados(db: Session, min_cancelados: int = 5):
     # Modificamos el nombre del archivo
     nombre_archivo = f"personas_con_{min_cancelados}_o_mas_cancelaciones.csv"
 
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 def generar_csv_turnos_confirmados_periodo(db: Session, desde: date, hasta: date):
     try:
@@ -429,37 +327,15 @@ def generar_csv_turnos_confirmados_periodo(db: Session, desde: date, hasta: date
                 'persona_nombre': turno.persona_nombre
             })
 
+        # Strings importantes
+        titulo = f"Turnos confirmados del {desde} al {hasta}"
+        descarga = f"/reportes/csv/descargar-turnos-confirmados?desde={desde}&hasta={hasta}"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(datos_turnos)
         df = df.sort_values(['fecha','hora'])
 
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Turnos confirmados del {desde} al {hasta}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Turnos confirmados del {desde} al {hasta}</h1>
-            <p>Total de turnos: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-turnos-confirmados?desde={desde}&hasta={hasta}">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
@@ -494,24 +370,7 @@ def descargar_csv_turnos_confirmados_periodo(db: Session, desde: date, hasta: da
     # Modificamos la ruta de salida
     nombre_archivo = f"turnos_confirmados_{desde}_{hasta}.csv"
 
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 def generar_csv_personas_por_estado(db: Session, habilitada: bool):
     try:
@@ -533,44 +392,20 @@ def generar_csv_personas_por_estado(db: Session, habilitada: bool):
                 'nombre': persona.nombre
             })
 
+        # Strings importantes
+        titulo = f"Personas {estado}"
+        descarga = f"/reportes/csv/descargar-estado-personas?habilitada={habilitada}"
+
         # Se crea un DataFrame con la información formateada
         df = pd.DataFrame(personas)
         df = df.sort_values(['id'])
 
-        # Generar tabla HTML
-        html_table = df.to_html(index=False, border=1)
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Personas {estado}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1 {{ color: #333; }}
-                table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
-                th {{ background-color: #4CAF50; color: white; }}
-                tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-            <h1>Personas {estado}</h1>
-            <p>Total de personas: {len(df)}</p>
-            {html_table}
-            <br>
-            <a href="/reportes/csv/descargar-estado-personas?habilitada={habilitada}">Descargar</a>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return generar_reporte_html(titulo, df, descarga)
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar la visualización: {str(e)}")
-
-    
 
 def descargar_csv_personas_por_estado(db: Session, habilitada: bool):
     # Importamos los datos que vamos a necesitar
@@ -595,24 +430,7 @@ def descargar_csv_personas_por_estado(db: Session, habilitada: bool):
     # Modificamos el nombre del archivo
     nombre_archivo = "personas_habilitadas.csv" if habilitada else "personas_no_habilitadas.csv"
 
-    # Crear un buffer en memoria para el CSV
-    buffer = io.StringIO()
-    
-    # Escribir CSV al buffer
-    df.to_csv(buffer, index=False, encoding='utf-8')
-    
-    # Obtener el contenido como string
-    csv_content = buffer.getvalue()
-    
-    # Crear una respuesta de streaming
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"inline; filename={nombre_archivo}",
-            "Content-Type": "text/csv; charset=utf-8"
-        }
-    )
+    return descargar_reporte_csv(nombre_archivo, df)
 
 
 
