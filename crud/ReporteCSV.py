@@ -522,12 +522,12 @@ def generar_csv_personas_por_estado(db: Session, habilitada: bool):
         estado = "habilitadas" if habilitada else "no habilitadas"
 
         # En caso de no haber personas con ese estado
-        if not datos["personas"]:
+        if not datos:
             raise HTTPException(status_code=404, detail=f"No hay personas en estado habilitado={habilitada}")
 
         # Los formateamos
         personas = []
-        for persona in datos["personas"]:
+        for persona in datos:
             personas.append({
                 'id': persona.id,
                 'nombre': persona.nombre
@@ -577,12 +577,12 @@ def descargar_csv_personas_por_estado(db: Session, habilitada: bool):
     datos = CrudReporte.get_personas_por_estado(db, habilitada)
 
     # En caso de no haber personas con ese estado
-    if not datos["personas"]:
+    if not datos:
         raise HTTPException(status_code=404, detail=f"No hay personas en estado habilitado={habilitada}")
 
     # Los formateamos
     personas = []
-    for persona in datos["personas"]:
+    for persona in datos:
         personas.append({
             'id': persona.id,
             'nombre': persona.nombre
