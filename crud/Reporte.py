@@ -65,7 +65,7 @@ def get_turnos_cancelados_mes_actual(db: Session):
         turnos_por_persona[persona_id]['turnos'].append(t)
 
     turnos_cancelados = []
-    for persona, dato in turnos_por_persona.items():
+    for persona_id, dato in turnos_por_persona.items():
         persona = dato['persona']
         turnos_basicos = [
             SchReporte.TurnoCanceladoInfoBasico(
